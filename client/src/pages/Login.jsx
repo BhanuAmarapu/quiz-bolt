@@ -28,17 +28,17 @@ const Login = () => {
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center px-4">
-            <div className="glass p-10 w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
+            <div className="bg-white p-10 w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500 rounded-[2rem] shadow-sm border border-gray-100">
                 <div className="text-center space-y-4">
-                    <div className="inline-flex p-4 rounded-[2rem] bg-primary/10 text-primary mb-2 shadow-xl shadow-primary/10">
+                    <div className="inline-flex p-4 rounded-[2rem] bg-indigo-50 text-indigo-600 mb-2 shadow-sm border border-indigo-100">
                         <Zap size={36} fill="currentColor" />
                     </div>
-                    <h1 className="text-4xl font-black italic tracking-tighter text-gradient uppercase">Welcome Back</h1>
-                    <p className="text-slate-500 font-medium">Access your global quiz studio</p>
+                    <h1 className="text-4xl font-black text-slate-900 uppercase">Welcome Back</h1>
+                    <p className="text-slate-500 font-bold">Access your global quiz studio</p>
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-bold">
                         <AlertCircle size={18} className="shrink-0" />
                         {error}
                     </div>
@@ -46,14 +46,14 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Email</label>
                         <div className="relative">
-                            <Mail className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                            <Mail className="absolute left-4 top-3.5 text-slate-400" size={18} />
                             <input
                                 id="login-email"
                                 type="email"
                                 placeholder="name@company.com"
-                                className="input-premium pl-12"
+                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-900 font-medium outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -62,14 +62,14 @@ const Login = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Password</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Password</label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                            <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
                             <input
                                 id="login-password"
                                 type="password"
                                 placeholder="••••••••"
-                                className="input-premium pl-12"
+                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-900 font-medium outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -80,15 +80,15 @@ const Login = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn-shimmer w-full py-4 text-base mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full py-4 text-sm font-bold text-white bg-indigo-600 rounded-xl mt-4 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors shadow-sm uppercase tracking-widest"
                     >
                         {loading ? 'AUTHENTICATING...' : 'SIGN IN TO STUDIO'}
                     </button>
                 </form>
 
-                <p className="text-center text-gray-400">
+                <p className="text-center text-slate-500 font-bold text-sm">
                     Don't have an account?{' '}
-                    <Link to="/register" className="text-primary font-semibold hover:underline">Sign up</Link>
+                    <Link to="/register" className="text-indigo-600 font-black hover:underline">Sign up</Link>
                 </p>
             </div>
         </div>

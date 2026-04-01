@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hash, AlertCircle, CreditCard } from 'lucide-react';
+import { Hash, AlertCircle, CreditCard, Loader2 } from 'lucide-react';
 import { getQuizByCode, getPaymentStatus, createPaymentOrder, verifyPayment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -86,15 +86,15 @@ const JoinRoom = () => {
     };
 
     return (
-        <div className="min-h-[70vh] flex items-center justify-center px-4">
-            <div className="glass p-10 w-full max-w-md text-center space-y-8">
+        <div className="min-h-[85vh] flex items-center justify-center p-4">
+            <div className="bg-white p-10 w-full max-w-md text-center space-y-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
                 <div className="space-y-3">
-                    <h2 className="text-4xl font-black italic tracking-tighter text-gradient uppercase">Ready to Rush?</h2>
-                    <p className="text-slate-400 font-medium">Enter the room code shared by your organizer</p>
+                    <h2 className="text-4xl font-black italic tracking-tighter text-slate-900 uppercase">Ready to Rush?</h2>
+                    <p className="text-slate-500 font-medium">Enter the room code shared by your organizer</p>
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm text-left">
+                    <div role="alert" aria-live="assertive" className="flex items-center gap-3 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm text-left">
                         <AlertCircle size={18} className="shrink-0" />
                         {error}
                     </div>
@@ -102,25 +102,26 @@ const JoinRoom = () => {
 
                 {/* Payment required overlay */}
                 {paymentQuiz && (
-                    <div className="space-y-6 p-8 glass-bright border-yellow-500/20 rounded-[2rem] animate-in zoom-in duration-300">
+                    <div className="space-y-6 p-8 bg-yellow-50 border border-yellow-200 rounded-[2rem] animate-in zoom-in duration-300 shadow-sm">
                         <div className="flex items-center justify-center gap-2 text-yellow-400 font-bold">
                             <CreditCard size={20} />
                             <span>Payment Required</span>
                         </div>
-                        <p className="text-gray-300 text-sm">
-                            <span className="font-bold">{paymentQuiz.title}</span> requires a payment of{' '}
-                            <span className="text-yellow-400 font-black">₹{paymentQuiz.price}</span> to join.
+                        <p className="text-slate-600 text-sm">
+                            <span className="font-bold text-slate-900">{paymentQuiz.title}</span> requires a payment of{' '}
+                            <span className="text-indigo-600 font-black">₹{paymentQuiz.price}</span> to join.
                         </p>
                         <button
                             onClick={handlePayment}
                             disabled={paying}
-                            className="btn-premium w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-60"
+                            aria-label={paying ? 'Processing payment' : `Pay ₹${paymentQuiz.price} and Join`}
+                            className="btn-premium w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#111827]"
                         >
-                            {paying ? 'Processing...' : `PAY ₹${paymentQuiz.price} & JOIN`}
+                            {paying ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : `PAY ₹${paymentQuiz.price} & JOIN`}
                         </button>
                         <button
                             onClick={() => setPaymentQuiz(null)}
-                            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                            className="text-xs text-slate-500 hover:text-slate-800 transition-colors font-bold"
                         >
                             Cancel
                         </button>
@@ -130,12 +131,13 @@ const JoinRoom = () => {
                 {!paymentQuiz && (
                     <form onSubmit={handleJoin} className="space-y-4">
                         <div className="relative">
-                            <Hash className="absolute left-4 top-4 text-primary" size={24} />
+                            <Hash className="absolute left-4 top-4 text-indigo-500" size={24} />
                             <input
                                 id="room-code-input"
                                 type="text"
+                                aria-label="Room Code"
                                 placeholder="ENTER CODE"
-                                className="input-premium pl-14 text-center text-2xl font-black tracking-widest uppercase placeholder:normal-case placeholder:font-medium placeholder:text-gray-600"
+                                className="w-full pl-14 pr-4 py-4 text-center text-2xl font-black tracking-widest uppercase bg-gray-50 border border-gray-200 rounded-2xl text-slate-900 placeholder:normal-case placeholder:font-medium placeholder:text-gray-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
                                 maxLength={6}
                                 value={roomCode}
                                 onChange={(e) => {
@@ -149,9 +151,10 @@ const JoinRoom = () => {
                             type="submit"
                             id="join-room-btn"
                             disabled={loading || roomCode.length < 6}
-                            className="btn-premium w-full py-4 text-xl disabled:opacity-60 disabled:cursor-not-allowed"
+                            aria-label={loading ? 'Verifying room code' : 'Join Room'}
+                            className="btn-premium flex items-center justify-center gap-3 w-full py-4 text-xl disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#111827]"
                         >
-                            {loading ? 'Verifying...' : 'JOIN ROOM'}
+                            {loading ? <><Loader2 className="animate-spin" size={24} /> Verifying...</> : 'JOIN ROOM'}
                         </button>
                     </form>
                 )}

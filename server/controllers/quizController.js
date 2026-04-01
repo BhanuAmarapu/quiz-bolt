@@ -152,6 +152,7 @@ const getUserHistory = async (req, res) => {
             if (!acc[sessionKey]) {
                 acc[sessionKey] = {
                     quizTitle: sub.quizId.title,
+                    quizId: sub.quizId._id,
                     roomCode: sub.roomCode,
                     date: sub.createdAt,
                     totalScore: 0,
@@ -253,6 +254,7 @@ const getOrganizerStats = async (req, res) => {
 
         const stats = sessions.map(s => ({
             _id: s._id,
+            quizId: s.quizId,
             title: s.quiz.title,
             roomCode: s._id,
             status: 'completed', // If it's in submission history, it's basically done or ongoing

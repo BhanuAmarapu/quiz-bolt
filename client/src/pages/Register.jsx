@@ -31,14 +31,14 @@ const Register = () => {
 
     return (
         <div className="min-h-[90vh] flex items-center justify-center px-4 py-12">
-            <div className="glass p-10 w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+            <div className="bg-white p-10 w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom duration-500 rounded-[2rem] shadow-sm border border-gray-100">
                 <div className="text-center space-y-3">
-                    <h1 className="text-4xl font-black italic tracking-tighter text-gradient uppercase">Create Studio</h1>
-                    <p className="text-slate-500 font-medium tracking-tight">Join the ultimate global quiz platform</p>
+                    <h1 className="text-4xl font-black text-slate-900 uppercase">Create Studio</h1>
+                    <p className="text-slate-500 font-bold">Join the ultimate global quiz platform</p>
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-bold">
                         <AlertCircle size={18} className="shrink-0" />
                         {error}
                     </div>
@@ -46,14 +46,14 @@ const Register = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
                         <div className="relative">
-                            <User className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                            <User className="absolute left-4 top-3.5 text-slate-400" size={18} />
                             <input
                                 id="register-name"
                                 type="text"
                                 placeholder="John Doe"
-                                className="input-premium pl-12"
+                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-900 font-medium outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
@@ -62,14 +62,14 @@ const Register = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Email</label>
                         <div className="relative">
-                            <Mail className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                            <Mail className="absolute left-4 top-3.5 text-slate-400" size={18} />
                             <input
                                 id="register-email"
                                 type="email"
                                 placeholder="name@company.com"
-                                className="input-premium pl-12"
+                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-900 font-medium outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -78,14 +78,14 @@ const Register = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Password</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Password</label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                            <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
                             <input
                                 id="register-password"
                                 type="password"
                                 placeholder="••••••••"
-                                className="input-premium pl-12"
+                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-900 font-medium outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -95,15 +95,15 @@ const Register = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Role</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Role</label>
                         <div className="flex gap-4">
                             <button
                                 type="button"
                                 id="role-participant"
                                 onClick={() => setRole('participant')}
-                                className={`flex-1 py-3 px-4 rounded-xl border transition-all ${role === 'participant'
-                                    ? 'bg-primary/20 border-primary text-white'
-                                    : 'bg-white/5 border-white/10 text-gray-400'
+                                className={`flex-1 py-3 px-4 rounded-xl border transition-all text-sm font-bold ${role === 'participant'
+                                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm'
+                                    : 'bg-white border-gray-200 text-slate-500 hover:bg-gray-50'
                                     }`}
                             >
                                 Participant
@@ -112,9 +112,9 @@ const Register = () => {
                                 type="button"
                                 id="role-organizer"
                                 onClick={() => setRole('organizer')}
-                                className={`flex-1 py-3 px-4 rounded-xl border transition-all ${role === 'organizer'
-                                    ? 'bg-secondary/20 border-secondary text-white'
-                                    : 'bg-white/5 border-white/10 text-gray-400'
+                                className={`flex-1 py-3 px-4 rounded-xl border transition-all text-sm font-bold ${role === 'organizer'
+                                    ? 'bg-yellow-50 border-yellow-200 text-yellow-700 shadow-sm'
+                                    : 'bg-white border-gray-200 text-slate-500 hover:bg-gray-50'
                                     }`}
                             >
                                 Organizer
@@ -125,15 +125,15 @@ const Register = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn-shimmer w-full py-4 text-base mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full py-4 text-sm font-bold text-white bg-indigo-600 rounded-xl mt-6 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors shadow-sm uppercase tracking-widest"
                     >
                         {loading ? 'INITIALIZING...' : 'GET STARTED FOR FREE'}
                     </button>
                 </form>
 
-                <p className="text-center text-gray-400">
+                <p className="text-center text-slate-500 font-bold text-sm">
                     Already have an account?{' '}
-                    <Link to="/login" className="text-primary font-semibold hover:underline">Sign in</Link>
+                    <Link to="/login" className="text-indigo-600 font-black hover:underline">Sign in</Link>
                 </p>
             </div>
         </div>

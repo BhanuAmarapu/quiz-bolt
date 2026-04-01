@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
-import { Timer, Trophy, Users, CheckCircle2, XCircle, PlayCircle, AlertCircle } from 'lucide-react';
+import { Timer, Trophy, Users, CheckCircle2, XCircle, PlayCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QuizRoom = () => {
@@ -111,6 +111,8 @@ const QuizRoom = () => {
         <AnimatePresence>
             {errorMessage && (
                 <motion.div
+                    role="alert"
+                    aria-live="assertive"
                     initial={{ y: -50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -50, opacity: 0 }}
@@ -130,15 +132,15 @@ const QuizRoom = () => {
                 <ErrorToast />
                 <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8 animate-in fade-in duration-500">
                     <div className="text-center space-y-6">
-                        <div className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-[10px] font-black tracking-widest rounded-full border border-primary/20 uppercase animate-pulse">Waiting for host</div>
-                        <h1 className="text-6xl font-black tracking-tight text-white italic uppercase line-through decoration-primary decoration-4">{quizTitle || 'Joining Session...'}</h1>
-                        <p className="text-gray-400 text-lg font-medium tracking-wide">The arena is being prepared. Stand by for activation.</p>
+                        <div className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-[10px] font-black tracking-widest rounded-full border border-indigo-200 uppercase animate-pulse">Waiting for host</div>
+                        <h1 className="text-6xl font-black tracking-tight text-slate-900 uppercase">{quizTitle || 'Joining Session...'}</h1>
+                        <p className="text-slate-500 text-lg font-medium tracking-wide">The arena is being prepared. Stand by for activation.</p>
                     </div>
 
-                    <div className="glass p-8 w-full max-w-md border-primary/20">
-                        <div className="flex items-center gap-3 mb-6 text-primary border-b border-white/10 pb-4">
+                    <div className="bg-white p-8 w-full max-w-md border border-gray-100 rounded-3xl shadow-sm">
+                        <div className="flex items-center gap-3 mb-6 text-indigo-600 border-b border-gray-100 pb-4">
                             <Users size={24} />
-                            <h3 className="text-xl font-bold uppercase tracking-widest">Lobby ({participants.length})</h3>
+                            <h3 className="text-xl font-bold uppercase tracking-widest text-slate-900">Lobby ({participants.length})</h3>
                         </div>
                         <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2">
                             {participants.map((p, i) => (
@@ -146,7 +148,7 @@ const QuizRoom = () => {
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     key={p._id || i}
-                                    className="px-4 py-3 bg-white/5 rounded-xl border border-white/10 text-center font-bold"
+                                    className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 text-center font-bold text-slate-800"
                                 >
                                     {p.name}
                                 </motion.div>
@@ -163,16 +165,16 @@ const QuizRoom = () => {
         return (
             <div className="max-w-4xl mx-auto p-8 text-center space-y-12 animate-in zoom-in duration-700">
                 <div className="space-y-4">
-                    <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-white to-orange-500">
+                    <h1 className="text-7xl font-black tracking-tighter text-indigo-600">
                         GAME OVER
                     </h1>
-                    <p className="text-gray-400 text-xl">Final Standings</p>
+                    <p className="text-slate-500 text-xl font-bold">Final Standings</p>
                 </div>
 
-                <div className="glass p-10 space-y-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent" />
-                    <h2 className="text-3xl font-bold flex items-center justify-center gap-3">
-                        <Trophy className="text-yellow-400" size={32} /> The Champions
+                <div className="bg-white p-10 space-y-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-indigo-500" />
+                    <h2 className="text-3xl font-bold flex items-center justify-center gap-3 text-slate-900">
+                        <Trophy className="text-yellow-500" size={32} /> The Champions
                     </h2>
                     <div className="space-y-4">
                         {leaderboard.map((entry, i) => (
@@ -181,15 +183,15 @@ const QuizRoom = () => {
                                 animate={{ x: 0, opacity: 1 }}
                                 transition={{ delay: i * 0.1 }}
                                 key={entry.name}
-                                className={`flex justify-between items-center p-6 rounded-2xl ${i === 0 ? 'bg-yellow-400/20 border-2 border-yellow-400/50 scale-105' : 'bg-white/5 border border-white/10'}`}
+                                className={`flex justify-between items-center p-6 rounded-2xl ${i === 0 ? 'bg-yellow-50 border-2 border-yellow-400 scale-105 shadow-xl' : 'bg-gray-50 border border-gray-100'}`}
                             >
                                 <div className="flex items-center gap-6">
-                                    <span className={`text-3xl font-black w-10 ${i === 0 ? 'text-yellow-400' : 'text-gray-500'}`}>{i + 1}</span>
-                                    <span className="font-black text-2xl uppercase tracking-tight">{entry.name}</span>
+                                    <span className={`text-3xl font-black w-10 ${i === 0 ? 'text-yellow-500' : 'text-slate-400'}`}>{i + 1}</span>
+                                    <span className="font-black text-2xl tracking-tight text-slate-900">{entry.name}</span>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-3xl font-black text-primary">{entry.score}</p>
-                                    <p className="text-xs text-gray-400 uppercase tracking-widest">{entry.time?.toFixed(2)}s Response</p>
+                                    <p className="text-3xl font-black text-indigo-600">{entry.score}</p>
+                                    <p className="text-xs text-slate-400 font-bold uppercase">{entry.time?.toFixed(2)}s Response</p>
                                 </div>
                             </motion.div>
                         ))}
@@ -203,34 +205,37 @@ const QuizRoom = () => {
     return (
         <>
             <ErrorToast />
-            <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-4 gap-8 mt-4">
-                <div className="lg:col-span-3 space-y-8">
+            <div className="max-w-7xl mx-auto p-4 md:p-8 flex flex-col-reverse lg:grid lg:grid-cols-4 gap-8 mt-4">
+                <div className="lg:col-span-3 space-y-8 flex flex-col">
                     {/* Header with timer */}
-                    <div className="flex justify-between items-start glass p-6 border-white/10 relative overflow-hidden">
+                    <div className="flex justify-between items-center bg-white p-8 border border-gray-100 rounded-3xl shadow-sm relative overflow-hidden min-h-[140px]" aria-live="polite">
                         <div
-                            className="absolute top-0 left-0 h-full bg-primary/10 transition-all duration-1000"
+                            className="absolute top-0 left-0 h-1 bg-indigo-500 transition-all duration-1000"
                             style={{ width: `${(timeLeft / currentQuestion?.timeLimit) * 100}%` }}
                         />
                         <div className="space-y-2 relative z-10">
                             <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 bg-primary text-white text-[10px] font-black rounded-full uppercase tracking-tighter">
+                                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-black rounded-full uppercase tracking-tighter">
                                     Q{currentQuestion?.index + 1} / {currentQuestion?.total}
                                 </span>
-                                <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">
+                                <span className="text-slate-500 font-bold text-xs uppercase tracking-widest">
                                     {currentQuestion?.questionType?.replace('-', ' ')}
                                 </span>
                             </div>
-                            <h2 className="text-4xl font-black tracking-tight leading-tight">{currentQuestion?.text}</h2>
+                            <h2 className="text-4xl font-black tracking-tight leading-tight text-slate-900 mt-2">{currentQuestion?.text}</h2>
                         </div>
-                        <div className="flex flex-col items-center px-6 py-4 glass bg-dark border-primary/30 min-w-[100px] relative z-10">
-                            <Timer className={`${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-primary'}`} size={24} />
-                            <span className={`text-4xl font-black ${timeLeft < 10 ? 'text-red-500' : 'text-white'}`}>{timeLeft}</span>
+                        <div 
+                            className="flex flex-col items-center px-6 py-4 bg-gray-100 rounded-2xl min-w-[100px] relative z-10 shrink-0 border border-gray-200"
+                            aria-label={`Time remaining: ${timeLeft} seconds`}
+                        >
+                            <span className="text-[10px] font-bold text-slate-500 uppercase mb-1">Time Limit</span>
+                            <span className={`text-4xl font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-slate-900'}`}>{timeLeft}</span>
                         </div>
                     </div>
 
                     {/* Media */}
                     {currentQuestion?.mediaUrl && (
-                        <div className="glass overflow-hidden h-[300px] flex items-center justify-center bg-black/40">
+                        <div className="bg-white rounded-3xl overflow-hidden h-[300px] flex items-center justify-center border border-gray-100 shadow-sm">
                             <img src={currentQuestion.mediaUrl} alt="Question Media" className="h-full w-full object-contain" />
                         </div>
                     )}
@@ -238,26 +243,32 @@ const QuizRoom = () => {
                     {/* Options */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <AnimatePresence mode='wait'>
-                            {currentQuestion?.options.map((option, i) => (
-                                <motion.button
-                                    key={option}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.1, type: 'spring' }}
-                                    onClick={() => submitAnswer(option)}
-                                    disabled={!!selectedOption || timeLeft === 0}
-                                    className={`group p-8 text-left text-2xl font-black rounded-[2rem] border-2 transition-all h-36 flex items-center justify-between relative overflow-hidden
-                                        ${selectedOption === option ? 'border-primary bg-primary/20 scale-[0.98]' : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'}
-                                        ${selectedOption && selectedOption !== option ? 'opacity-30 blur-[1px]' : 'opacity-100'}
-                                    `}
-                                >
-                                    <span className="relative z-10">{option}</span>
-                                    {selectedOption === option && <CheckCircle2 className="text-primary relative z-10" size={32} />}
-                                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                        <PlayCircle size={120} />
-                                    </div>
-                                </motion.button>
-                            ))}
+                            {currentQuestion?.options.map((option, i) => {
+                                const isSelected = selectedOption === option;
+                                const isSubmitting = isSelected && !myResult;
+                                return (
+                                    <motion.button
+                                        key={option}
+                                        aria-label={`Select option ${option}`}
+                                        aria-pressed={isSelected}
+                                        initial={{ opacity: 0, y: 30 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.1, type: 'spring' }}
+                                        onClick={() => submitAnswer(option)}
+                                        disabled={!!selectedOption || timeLeft === 0}
+                                        className={`group px-8 pt-10 pb-8 text-center text-xl font-bold rounded-[2rem] border-2 transition-all min-h-[9rem] flex flex-col items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white
+                                            ${isSelected ? 'border-green-500 bg-green-50 scale-[0.98]' : 'border-gray-100 bg-white hover:bg-gray-50'}
+                                            ${selectedOption && !isSelected ? 'opacity-50' : 'opacity-100'}
+                                        `}
+                                    >
+                                        <div className={`absolute top-4 left-6 px-3 py-1 text-xs font-black rounded-full flex items-center gap-1 ${isSelected ? 'bg-green-500 text-white' : 'bg-slate-800 text-white'}`}>
+                                            OPTION {i + 1} {isSelected && <CheckCircle2 size={14} className="ml-1" />}
+                                        </div>
+                                        <span className="relative z-10 w-full break-words text-slate-900 mt-2">{option}</span>
+                                        {isSubmitting && <Loader2 className="text-indigo-600 relative z-10 animate-spin absolute right-6 top-6" size={24} />}
+                                    </motion.button>
+                                );
+                            })}
                         </AnimatePresence>
                     </div>
 
@@ -265,27 +276,29 @@ const QuizRoom = () => {
                     <AnimatePresence>
                         {myResult && (
                             <motion.div
+                                role="status"
+                                aria-live="polite"
                                 initial={{ y: 50, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: 50, opacity: 0 }}
-                                className={`glass p-8 text-center space-y-2 border-2 ${myResult.isCorrect ? 'border-green-500/50 bg-green-500/20' : 'border-red-500/50 bg-red-500/20'}`}
+                                className={`bg-white rounded-3xl p-8 text-center space-y-2 border-2 shadow-sm ${myResult.isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}
                             >
-                                <div className={`flex items-center justify-center gap-4 ${myResult.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                                <div className={`flex items-center justify-center gap-4 ${myResult.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
                                     {myResult.isCorrect ? <CheckCircle2 size={40} /> : <XCircle size={40} />}
                                     <span className="text-4xl font-black tracking-tighter uppercase">
                                         {myResult.isCorrect ? `AWESOME! +${myResult.score}` : 'WRONG ANSWER'}
                                     </span>
                                 </div>
-                                <p className="text-white/60 font-bold uppercase tracking-widest text-xs">Waiting for the next question...</p>
+                                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Waiting for the next question...</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
                 {/* Leaderboard Sidebar */}
-                <div className="space-y-6">
-                    <div className="glass p-6 border-white/10">
-                        <h3 className="text-2xl font-black flex items-center gap-3 mb-6 tracking-tighter uppercase italic">
+                <div className="space-y-6 max-h-[35vh] lg:max-h-none overflow-y-auto w-full scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent pr-2 pb-2">
+                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                        <h3 className="text-2xl font-black flex items-center gap-3 mb-6 font-sans text-slate-900">
                             <Trophy className="text-yellow-500" /> Rank Rush
                         </h3>
                         <div className="space-y-4">
@@ -293,17 +306,17 @@ const QuizRoom = () => {
                                 <motion.div
                                     layout
                                     key={entry.name}
-                                    className={`flex justify-between items-center glass p-4 border-white/5 ${entry.name === user.name ? 'border-primary/50 bg-primary/10' : ''}`}
+                                    className={`flex justify-between items-center bg-gray-50 rounded-xl p-4 border border-gray-100 ${entry.name === user.name ? 'border-indigo-500 bg-indigo-50 shadow-md' : ''}`}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <span className={`font-black text-xl italic ${i < 3 ? 'text-primary' : 'text-gray-600'}`}>#{i + 1}</span>
-                                        <span className="font-bold tracking-tight text-sm uppercase truncate max-w-[100px]">{entry.name}</span>
+                                        <span className={`font-black text-xl ${i < 3 ? 'text-indigo-600' : 'text-slate-400'}`}>#{i + 1}</span>
+                                        <span className="font-bold tracking-tight text-sm text-slate-900 truncate max-w-[100px]">{entry.name}</span>
                                     </div>
                                     <div className="text-right">
-                                        <span className="font-black text-lg text-white">{entry.score}</span>
-                                        <div className="h-1 w-full bg-white/10 rounded-full mt-1 overflow-hidden">
+                                        <span className="font-black text-lg text-indigo-700">{entry.score}</span>
+                                        <div className="h-1.5 w-full bg-gray-200 rounded-full mt-1 overflow-hidden">
                                             <div
-                                                className="h-full bg-primary"
+                                                className="h-full bg-indigo-500"
                                                 style={{ width: `${(entry.score / (leaderboard[0]?.score || 1)) * 100}%` }}
                                             />
                                         </div>
