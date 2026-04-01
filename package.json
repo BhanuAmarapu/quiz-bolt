@@ -1,0 +1,16 @@
+{
+  "name": "quiz-platform",
+  "version": "1.0.0",
+  "description": "Quiz Platform - Monorepo root",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n SERVER,PAYMENT,CLIENT -c blue,yellow,magenta \"npm run dev:server\" \"npm run dev:payment\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:payment": "cd payment-service && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "cd server && npm install && cd ../payment-service && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
