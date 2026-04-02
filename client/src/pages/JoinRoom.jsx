@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Hash, AlertCircle, CreditCard, Loader2 } from 'lucide-react';
-import { getQuizByCode, getPaymentStatus, createPaymentOrder, verifyPayment } from '../services/api';
+import { getPaymentStatus, createPaymentOrder, verifyPayment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useAppData } from '../context/AppDataContext';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import InputField from '../components/ui/InputField';
 
 const JoinRoom = () => {
     const [roomCode, setRoomCode] = useState('');
@@ -12,13 +16,14 @@ const JoinRoom = () => {
     const [paying, setPaying] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { getQuizByCodeCached, setQuizByCodeCached } = useAppData();
 
     const handleJoin = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            const quiz = await getQuizByCode(roomCode);
+            const quiz = await getQuizByCodeCached(roomCode);
 
             // If paid quiz, check payment status
             if (quiz.isPaid && quiz.price > 0 && user?.role !== 'organizer') {
@@ -60,6 +65,7 @@ const JoinRoom = () => {
                             response.razorpay_signature,
                             paymentQuiz._id
                         );
+                        setQuizByCodeCached(roomCode, paymentQuiz);
                         navigate(`/quiz/${roomCode}`);
                     } catch {
                         setError('Payment verification failed. Please contact support.');
@@ -87,9 +93,9 @@ const JoinRoom = () => {
 
     return (
         <div className="min-h-[85vh] flex items-center justify-center p-4">
-            <div className="bg-white p-10 w-full max-w-md text-center space-y-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
+            <Card className="bg-white p-10 w-full max-w-md text-center space-y-8 rounded-4xl border border-gray-100 shadow-sm relative overflow-hidden">
                 <div className="space-y-3">
-                    <h2 className="text-4xl font-black italic tracking-tighter text-slate-900 uppercase">Ready to Rush?</h2>
+                    <h2 className="text-4xl font-black italic tracking-tighter text-slate-900 uppercase">Ready to Join?</h2>
                     <p className="text-slate-500 font-medium">Enter the room code shared by your organizer</p>
                 </div>
 
@@ -102,7 +108,7 @@ const JoinRoom = () => {
 
                 {/* Payment required overlay */}
                 {paymentQuiz && (
-                    <div className="space-y-6 p-8 bg-yellow-50 border border-yellow-200 rounded-[2rem] animate-in zoom-in duration-300 shadow-sm">
+                    <div className="space-y-6 p-8 bg-yellow-50 border border-yellow-200 rounded-4xl animate-in zoom-in duration-300 shadow-sm">
                         <div className="flex items-center justify-center gap-2 text-yellow-400 font-bold">
                             <CreditCard size={20} />
                             <span>Payment Required</span>
@@ -111,20 +117,20 @@ const JoinRoom = () => {
                             <span className="font-bold text-slate-900">{paymentQuiz.title}</span> requires a payment of{' '}
                             <span className="text-indigo-600 font-black">₹{paymentQuiz.price}</span> to join.
                         </p>
-                        <button
+                        <Button
                             onClick={handlePayment}
                             disabled={paying}
                             aria-label={paying ? 'Processing payment' : `Pay ₹${paymentQuiz.price} and Join`}
                             className="btn-premium w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#111827]"
                         >
                             {paying ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : `PAY ₹${paymentQuiz.price} & JOIN`}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={() => setPaymentQuiz(null)}
                             className="text-xs text-slate-500 hover:text-slate-800 transition-colors font-bold"
                         >
                             Cancel
-                        </button>
+                        </Button>
                     </div>
                 )}
 
@@ -132,7 +138,7 @@ const JoinRoom = () => {
                     <form onSubmit={handleJoin} className="space-y-4">
                         <div className="relative">
                             <Hash className="absolute left-4 top-4 text-indigo-500" size={24} />
-                            <input
+                            <InputField
                                 id="room-code-input"
                                 type="text"
                                 aria-label="Room Code"
@@ -147,7 +153,7 @@ const JoinRoom = () => {
                                 required
                             />
                         </div>
-                        <button
+                        <Button
                             type="submit"
                             id="join-room-btn"
                             disabled={loading || roomCode.length < 6}
@@ -155,10 +161,10 @@ const JoinRoom = () => {
                             className="btn-premium flex items-center justify-center gap-3 w-full py-4 text-xl disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#111827]"
                         >
                             {loading ? <><Loader2 className="animate-spin" size={24} /> Verifying...</> : 'JOIN ROOM'}
-                        </button>
+                        </Button>
                     </form>
                 )}
-            </div>
+            </Card>
         </div>
     );
 };

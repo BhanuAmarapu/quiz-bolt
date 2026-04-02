@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 const requiredEnvVars = [
     'DATABASE_URL',
@@ -15,7 +16,7 @@ if (missingEnvVars.length > 0) {
 }
 
 const config = {
-    port: process.env.PORT || 5001,
+    port: process.env.PAYMENT_SERVICE_PORT || process.env.PORT || 5001,
     nodeEnv: process.env.NODE_ENV || 'development',
     databaseUrl: process.env.DATABASE_URL,
     razorpayKeyId: process.env.RAZORPAY_KEY_ID,

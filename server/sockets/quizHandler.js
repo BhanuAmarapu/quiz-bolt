@@ -25,6 +25,34 @@ const SESSION_TTL = 3600; // 1 hour
 
 const sessionKey = (roomCode) => `quiz:session:${roomCode}`;
 
+const shuffleArray = (items) => {
+    const array = [...items];
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+};
+
+const getSessionQuestions = (session, quiz) => session?.questions?.length ? session.questions : quiz.questions;
+
+const formatQuestion = (question, index, total, expiry) => {
+    const options = question.shuffleOptions ? shuffleArray(question.options) : question.options;
+
+    return {
+        _id: question._id,
+        text: question.text,
+        options,
+        timeLimit: question.timeLimit,
+        mediaUrl: question.mediaUrl,
+        questionType: question.questionType,
+        shuffleOptions: !!question.shuffleOptions,
+        index,
+        total,
+        expiry,
+    };
+};
+
 const getSession = async (roomCode) => {
     const rc = tryGetRedis();
     if (rc) {
@@ -80,18 +108,14 @@ const quizHandler = (io, socket) => {
 
             if (session.status === 'ongoing') {
                 const quiz = await Quiz.findById(session.quizId);
-                if (quiz && quiz.questions[session.currentQuestionIndex]) {
-                    const question = quiz.questions[session.currentQuestionIndex];
-                    currentQuestion = {
-                        _id: question._id,
-                        text: question.text,
-                        options: question.options,
-                        timeLimit: question.timeLimit,
-                        mediaUrl: question.mediaUrl,
-                        questionType: question.questionType,
-                        index: session.currentQuestionIndex,
-                        total: quiz.questions.length
-                    };
+                const questions = getSessionQuestions(session, quiz || {});
+                if (questions && questions[session.currentQuestionIndex]) {
+                    currentQuestion = formatQuestion(
+                        questions[session.currentQuestionIndex],
+                        session.currentQuestionIndex,
+                        questions.length,
+                        session.questionExpiry
+                    );
                     timeLeft = Math.max(0, Math.floor((session.questionExpiry - Date.now()) / 1000));
                 }
             }
@@ -129,6 +153,10 @@ const quizHandler = (io, socket) => {
             quiz.status = 'ongoing';
             await quiz.save();
 
+            const sessionQuestions = quiz.shuffleQuestions
+                ? shuffleArray(quiz.questions.map(question => (question.toObject ? question.toObject() : question)))
+                : quiz.questions.map(question => (question.toObject ? question.toObject() : question));
+
             let session = await getSession(roomCode);
             const updatedSession = {
                 ...(session || { participants: {} }),
@@ -139,7 +167,8 @@ const quizHandler = (io, socket) => {
                 questionStartTime: null,
                 questionExpiry: null,
                 lastActivity: Date.now(),
-                quizId: quiz._id.toString()
+                quizId: quiz._id.toString(),
+                questions: sessionQuestions
             };
 
             await setSession(roomCode, updatedSession);
@@ -159,7 +188,8 @@ const quizHandler = (io, socket) => {
             if (Date.now() > session.questionExpiry) return;
 
             const quiz = await Quiz.findById(session.quizId);
-            const question = quiz.questions[session.currentQuestionIndex];
+            const questions = getSessionQuestions(session, quiz || {});
+            const question = questions[session.currentQuestionIndex];
 
             const timeTaken = (Date.now() - session.questionStartTime) / 1000;
             const isCorrect = compareAnswers(selectedOption, question.hashedCorrectAnswer);
@@ -210,6 +240,7 @@ const quizHandler = (io, socket) => {
 const broadcastQuestion = async (io, roomCode, quiz) => {
     const session = await getSession(roomCode);
     if (!session) return;
+    const sessionQuestions = getSessionQuestions(session, quiz);
 
     // Clear existing timer if any
     if (activeTimers.has(roomCode)) {
@@ -217,7 +248,7 @@ const broadcastQuestion = async (io, roomCode, quiz) => {
         activeTimers.delete(roomCode);
     }
 
-    if (session.currentQuestionIndex >= quiz.questions.length) {
+    if (session.currentQuestionIndex >= sessionQuestions.length) {
         session.status = 'completed';
         await setSession(roomCode, session);
         io.to(roomCode).emit('quiz_finished');
@@ -227,23 +258,18 @@ const broadcastQuestion = async (io, roomCode, quiz) => {
         return;
     }
 
-    const question = quiz.questions[session.currentQuestionIndex];
+    const question = sessionQuestions[session.currentQuestionIndex];
     session.responses = [];
     session.questionStartTime = Date.now();
     session.questionExpiry = Date.now() + (question.timeLimit * 1000);
     await setSession(roomCode, session);
 
-    const sanitizedQuestion = {
-        _id: question._id,
-        text: question.text,
-        options: question.options,
-        timeLimit: question.timeLimit,
-        mediaUrl: question.mediaUrl,
-        questionType: question.questionType,
-        index: session.currentQuestionIndex,
-        total: quiz.questions.length,
-        expiry: session.questionExpiry
-    };
+    const sanitizedQuestion = formatQuestion(
+        question,
+        session.currentQuestionIndex,
+        sessionQuestions.length,
+        session.questionExpiry
+    );
 
     io.to(roomCode).emit('new_question', sanitizedQuestion);
 

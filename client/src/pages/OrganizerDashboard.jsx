@@ -1,71 +1,17 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Play, Trash2, X, Check, Zap, Folder, ChevronLeft, AlertCircle, CheckCircle2, Pencil } from 'lucide-react';
-import { useSocket } from '../context/SocketContext';
+import { Plus, Play, Trash2, X, Check, Zap, Folder, ChevronLeft, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useAppData } from '../context/AppDataContext';
 import {
-    getMyQuizzes,
     createQuiz as apiCreateQuiz,
     deleteQuiz as apiDeleteQuiz,
     updateQuiz as apiUpdateQuiz
 } from '../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-
-// ─── Inline Toast Notification ────────────────────────────────────────────────
-const Toast = ({ message, type, onClose }) => {
-    if (!message) return null;
-    const isError = type === 'error';
-    return (
-        <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            className={`fixed top-4 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-3 px-6 py-4 bg-white rounded-2xl font-bold shadow-xl border
-                ${isError ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}`}
-        >
-            {isError ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
-            <span>{message}</span>
-            <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X size={16} /></button>
-        </motion.div>
-    );
-};
-
-// ─── Confirm Dialog ────────────────────────────────────────────────────────────
-const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-        <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white p-8 rounded-[2rem] max-w-sm w-full mx-4 space-y-6 border border-gray-100 shadow-xl"
-        >
-            <div className="flex items-start gap-4">
-                <div className="p-3 bg-red-500/20 rounded-2xl">
-                    <Trash2 className="text-red-400" size={24} />
-                </div>
-                <div>
-                    <h3 className="font-black text-lg tracking-tight">Confirm Delete</h3>
-                    <p className="text-slate-400 text-sm mt-1">{message}</p>
-                </div>
-            </div>
-            <div className="flex gap-3">
-                <button
-                    onClick={onCancel}
-                    className="flex-1 py-3 bg-gray-50 rounded-xl text-sm font-bold text-slate-700 hover:bg-gray-100 transition-all border border-gray-200"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={onConfirm}
-                    className="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-bold transition-all border border-red-200"
-                >
-                    Delete
-                </button>
-            </div>
-        </motion.div>
-    </div>
-);
+import Toast from '../components/common/Toast';
+import ConfirmationDialog from '../components/common/ConfirmationDialog';
+import useToast from '../hooks/useToast';
 
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
@@ -79,7 +25,6 @@ const OrganizerDashboard = () => {
     const [quizType, setQuizType] = useState('quiz');
 
     // UI state
-    const [toast, setToast] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
 
     // Inline rename state
@@ -87,15 +32,12 @@ const OrganizerDashboard = () => {
     const [editingTitle, setEditingTitle] = useState('');
 
     const { user } = useAuth();
+    const { getQuizzesForParent, setQuizzesForParent } = useAppData();
+    const { toast, showToast, clearToast } = useToast();
 
     // Payment / monetization state
     const [isPaid, setIsPaid] = useState(false);
     const [quizPrice, setQuizPrice] = useState('');
-
-    const showToast = useCallback((message, type = 'error') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 4000);
-    }, []);
 
     const showConfirm = (message, onConfirm) => {
         setConfirmDialog({ message, onConfirm });
@@ -104,12 +46,12 @@ const OrganizerDashboard = () => {
     const fetchQuizzes = useCallback(async () => {
         try {
             const parentId = currentSubject ? currentSubject._id : 'none';
-            const data = await getMyQuizzes(parentId);
+            const data = await getQuizzesForParent(parentId);
             setQuizzes(data);
         } catch {
             showToast('Failed to load quizzes');
         }
-    }, [currentSubject, showToast]);
+    }, [currentSubject, showToast, getQuizzesForParent]);
 
     useEffect(() => {
         fetchQuizzes();
@@ -122,7 +64,10 @@ const OrganizerDashboard = () => {
         }
         try {
             const updated = await apiUpdateQuiz(quizId, { title: editingTitle.trim() });
-            setQuizzes(prev => prev.map(q => q._id === updated._id ? updated : q));
+            const next = quizzes.map(q => q._id === updated._id ? updated : q);
+            setQuizzes(next);
+            const parentId = currentSubject ? currentSubject._id : 'none';
+            setQuizzesForParent(parentId, next);
             if (activeQuiz && activeQuiz._id === updated._id) setActiveQuiz(updated);
             showToast('Title updated!', 'success');
         } catch {
@@ -146,14 +91,17 @@ const OrganizerDashboard = () => {
                 isPaid,
                 isPaid ? Number(quizPrice) || 0 : 0
             );
-            setQuizzes(prev => [data, ...prev]);
+            const next = [data, ...quizzes];
+            setQuizzes(next);
+            const parentId = currentSubject ? currentSubject._id : 'none';
+            setQuizzesForParent(parentId, next);
             setNewQuizTitle('');
             setShowCreate(false);
             setIsPaid(false);
             setQuizPrice('');
             if (data.type === 'quiz') {
                 setActiveQuiz(data);
-                setView('edit');
+                navigate(`/edit/${data._id}`);
             }
         } catch (err) {
             const msg = err.response?.data?.message || 'Failed to create project';
@@ -166,7 +114,10 @@ const OrganizerDashboard = () => {
             setConfirmDialog(null);
             try {
                 await apiDeleteQuiz(quizId);
-                setQuizzes(prev => prev.filter(q => q._id !== quizId));
+                const next = quizzes.filter(q => q._id !== quizId);
+                setQuizzes(next);
+                const parentId = currentSubject ? currentSubject._id : 'none';
+                setQuizzesForParent(parentId, next);
                 showToast('Project deleted', 'success');
             } catch {
                 showToast('Failed to delete project');
@@ -178,10 +129,12 @@ const OrganizerDashboard = () => {
     return (
         <>
             <AnimatePresence>
-                {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                {toast && <Toast message={toast.message} type={toast.type} onClose={clearToast} />}
                 {confirmDialog && (
-                    <ConfirmDialog
+                    <ConfirmationDialog
+                        open={!!confirmDialog}
                         message={confirmDialog.message}
+                        confirmLabel="Delete"
                         onConfirm={confirmDialog.onConfirm}
                         onCancel={() => setConfirmDialog(null)}
                     />
@@ -222,7 +175,7 @@ const OrganizerDashboard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {quizzes.map((quiz) => (
-                        <div key={quiz._id} className={`bg-white rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden group ${quiz.type === 'subject' ? 'border-l-4 border-l-indigo-400' : ''}`}>
+                        <div key={quiz._id} className={`bg-white rounded-4xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden group ${quiz.type === 'subject' ? 'border-l-4 border-l-indigo-400' : ''}`}>
                             <div className="p-8 space-y-6 relative">
                                 {quiz.type === 'subject' ? (
                                     <>
@@ -338,7 +291,7 @@ const OrganizerDashboard = () => {
                 </div>
 
                 {showCreate && (
-                    <div className="bg-white p-8 space-y-6 mt-12 animate-in slide-in-from-bottom duration-300 border border-gray-100 rounded-[2rem] shadow-sm">
+                    <div className="bg-white p-8 space-y-6 mt-12 animate-in slide-in-from-bottom duration-300 border border-gray-100 rounded-4xl shadow-sm">
                         <div className="flex justify-between items-center">
                             <h3 className="text-2xl font-black text-slate-900 uppercase">
                                 {currentSubject ? `New Quiz in ${currentSubject.title}` : 'New Project Configuration'}

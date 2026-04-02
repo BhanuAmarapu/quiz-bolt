@@ -1,47 +1,101 @@
-# ⚡ QuizBolt - Real-Time Quiz Platform
+# QuizBolt - Ignite Your Learning
 
-QuizBolt is a premium, real-time quiz application designed for high-speed engagement and competitive learning.
+QuizBolt is a modern, real-time quiz platform designed to make learning interactive, competitive, and measurable. It supports live quiz sessions, role-based flows, payment-enabled quizzes, session analytics, and a responsive front-end experience.
 
-## 🚀 Key Features
-- **Real-Time Dashboards**: Instant leaderboard updates using Socket.io.
-- **Secure Answers**: Server-side SHA-256 hashing for all answers—no cheating!
-- **Speed-Based Scoring**: `Score = 1000 - (time_taken * 50)`.
-- **Role-Based Access**: Specialized views for Admins, Organizers, and Participants.
-- **Premium UI**: Modern glassmorphic design built with React, Tailwind CSS, and Framer Motion.
+## What This Repository Contains
 
-## 🛠 Tech Stack
-- **Frontend**: React (Vite), Tailwind CSS, Framer Motion, Axios, Socket.io-client.
-- **Backend**: Node.js, Express, MongoDB (Mongoose), Socket.io, JWT, Crypto.
+- `client/` - React + Vite frontend used by participants and organizers
+- `server/` - Main API service (auth, quizzes, submissions, live quiz socket flow)
+- `payment-service/` - Payment and revenue service (Razorpay integration)
 
-## 🏁 Getting Started
+## Key Highlights
 
-### 1. Prerequisites
-- Node.js installed.
-- MongoDB running locally or a MongoDB Atlas connection string.
+- Real-time quiz participation with instant updates
+- Interactive, gamified learning experience
+- Role-based organizer and participant workflows
+- Revenue and payment support for paid quizzes
+- Secure auth/session handling and scalable service split
 
-### 2. Backend Setup
+## Tech Stack
+
+- Frontend: React, Vite, Tailwind CSS, Socket.IO client
+- API: Node.js, Express, Mongoose, Socket.IO, JWT
+- Data: MongoDB, Redis (session/cache support)
+- Payments: Razorpay integration via payment microservice
+
+## Prerequisites
+
+- Node.js 18+
+- MongoDB instance
+- Redis instance (for production-like realtime behavior)
+- Razorpay keys (for paid quiz flows)
+
+## Environment Setup
+
+1. Copy the shared environment file:
+
 ```bash
-cd server
-npm install
-# Update .env with your MONGO_URI and JWT_SECRET
-npm start
+copy .env.example .env
 ```
 
-### 3. Frontend Setup
+2. Update values in `.env` for your local machine.
+
+Note: This project uses a shared root `.env` consumed by both `server/` and `payment-service/`.
+
+## Install Dependencies
+
+Run from repository root:
+
 ```bash
-cd client
 npm install
+```
+
+Install service-level dependencies if needed:
+
+```bash
+cd server && npm install
+cd ../payment-service && npm install
+cd ../client && npm install
+```
+
+## Run Services (Development)
+
+Open separate terminals:
+
+```bash
+cd server
 npm run dev
 ```
 
-## 🔒 Security
-QuizBolt prioritizes security:
-1. **No Client-Side Answers**: Correct answers are only stored on the server as SHA-256 hashes.
-2. **JWT Protected Routes**: Middleware ensures only authorized users can create or manage quizzes.
-3. **Speed Truncation**: Answer submission is locked immediately after the server-side timer expires.
+```bash
+cd payment-service
+npm run dev
+```
 
-## 🏆 Ranking Logic
-Leaderboards are calculated after every question based on:
-1. **Correctness**: 0 points for wrong answers.
-2. **Total Score**: Descending order.
-3. **Response Time**: Tie-breaker based on faster total response time.
+```bash
+cd client
+npm run dev
+```
+
+## Default Local Ports
+
+- Client: `5173`
+- Main API server: `5000`
+- Payment service: `5001`
+
+## Production/Deployment Notes
+
+- Docker compose support is available in `docker-compose.yml`
+- AWS deployment guide is available in `DEPLOYMENT_AWS.md`
+
+## Additional Documentation
+
+- `PROJECT_STRUCTURE.md` - folder and service layout details
+- `IMPLEMENTATION_STATUS.md` - implementation progress overview
+- `DATABASE_SCHEMA_REFACTOR_REPORT.md` - schema hardening and migration details
+
+## Vision
+
+To ignite curiosity, enhance learning, and build a global platform where knowledge becomes an exciting and competitive journey.
+
+QuizBolt - Learn. Compete. Evolve.

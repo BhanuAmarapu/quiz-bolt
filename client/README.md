@@ -1,16 +1,69 @@
-# React + Vite
+# QuizBolt Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for QuizBolt, built with React and Vite.
 
-Currently, two official plugins are available:
+## Responsibilities
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Authentication screens (login/register/profile)
+- Organizer workflows (dashboard, quiz editing, live control, results)
+- Participant workflows (join room, play quiz, history)
+- Real-time updates through Socket.IO
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React
+- Vite
+- Tailwind CSS
+- Axios
+- Socket.IO client
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Node.js 18+
+- Main API server running (`server/`)
+- Payment service running (`payment-service/`) for paid quiz flows
+
+## Environment
+
+The client reads API config from the shared root `.env`:
+
+- `VITE_API_URL=/api`
+
+Vite proxy settings are defined in `vite.config.js` for:
+
+- `/api` -> main server
+- `/socket.io` -> main server websocket
+- `/payment` -> payment service
+
+## Development
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+cd client
+npm run build
+npm run preview
+```
+
+## Folder Notes
+
+- `src/pages/` - Route-level screens
+- `src/components/` - UI and feature components
+- `src/context/` - Auth/theme/socket/data contexts
+- `src/services/api.js` - API client layer
+- `src/hooks/` - Reusable UI/realtime hooks
+
+## UX Direction
+
+The frontend is designed for fast, clear quiz interactions with:
+
+- High readability for question flow
+- Responsive layouts across desktop/mobile
+- Organizer-first controls for live sessions
+- Participant-first feedback on submissions and standings

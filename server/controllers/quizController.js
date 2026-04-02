@@ -12,21 +12,38 @@ const createQuiz = async (req, res) => {
             return res.status(400).json({ message: 'Title is required' });
         }
 
-        let roomCode = null;
-        if (type !== 'subject') {
-            roomCode = generateCode();
+        let quiz;
+        let attempts = 0;
+
+        // Always assign a room code. This avoids duplicate-null index failures
+        // on older databases where roomCode may have a non-sparse unique index.
+        while (!quiz && attempts < 5) {
+            attempts += 1;
+            const roomCode = generateCode();
+
+            try {
+                quiz = await Quiz.create({
+                    title: title.trim(),
+                    organizerId: req.user._id,
+                    roomCode,
+                    type: type || 'quiz',
+                    parentId: parentId || null,
+                    isPaid: isPaid || false,
+                    price: isPaid ? (price || 0) : 0,
+                    shuffleQuestions: false,
+                    questions: [],
+                });
+            } catch (err) {
+                if (err?.code === 11000 && err?.keyPattern?.roomCode) {
+                    continue;
+                }
+                throw err;
+            }
         }
 
-        const quiz = await Quiz.create({
-            title: title.trim(),
-            organizerId: req.user._id,
-            roomCode,
-            type: type || 'quiz',
-            parentId: parentId || null,
-            isPaid: isPaid || false,
-            price: isPaid ? (price || 0) : 0,
-            questions: [],
-        });
+        if (!quiz) {
+            return res.status(409).json({ message: 'Unable to allocate unique room code. Please try again.' });
+        }
 
         res.status(201).json(quiz);
     } catch (error) {
@@ -38,7 +55,7 @@ const createQuiz = async (req, res) => {
 const addQuestion = async (req, res) => {
     try {
         const { id } = req.params;
-        const { text, options, correctOption, timeLimit } = req.body;
+        const { text, options, correctOption, timeLimit, shuffleOptions } = req.body;
 
         if (!text || !options || options.length < 2 || correctOption === undefined) {
             return res.status(400).json({ message: 'Question text, at least 2 options, and a correct option index are required' });
@@ -50,7 +67,7 @@ const addQuestion = async (req, res) => {
         // Hashing the correct answer from the selected option index
         const hashedCorrectAnswer = hashAnswer(options[correctOption]);
 
-        quiz.questions.push({ text, options, correctOption, hashedCorrectAnswer, timeLimit });
+        quiz.questions.push({ text, options, correctOption, hashedCorrectAnswer, timeLimit, shuffleOptions: !!shuffleOptions });
         await quiz.save();
 
         res.json(quiz);
@@ -273,10 +290,15 @@ const getOrganizerStats = async (req, res) => {
 const updateQuiz = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, status } = req.body;
+        const { title, status, shuffleQuestions } = req.body;
+        const updateData = {};
+
+        if (title !== undefined) updateData.title = title;
+        if (status !== undefined) updateData.status = status;
+        if (shuffleQuestions !== undefined) updateData.shuffleQuestions = shuffleQuestions;
         const quiz = await Quiz.findOneAndUpdate(
             { _id: id, organizerId: req.user._id },
-            { title, status },
+            updateData,
             { new: true }
         );
         if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
@@ -314,7 +336,7 @@ const deleteQuiz = async (req, res) => {
 const updateQuestion = async (req, res) => {
     try {
         const { quizId, questionId } = req.params;
-        const { text, options, correctOption, timeLimit } = req.body;
+        const { text, options, correctOption, timeLimit, shuffleOptions } = req.body;
 
         const quiz = await Quiz.findOne({ _id: quizId, organizerId: req.user._id });
         if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
@@ -331,6 +353,7 @@ const updateQuestion = async (req, res) => {
             question.hashedCorrectAnswer = hashAnswer(targetOptions[correctOption]);
         }
         if (timeLimit) question.timeLimit = timeLimit;
+        if (shuffleOptions !== undefined) question.shuffleOptions = shuffleOptions;
 
         await quiz.save();
         res.json(quiz);

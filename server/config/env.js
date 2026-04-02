@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 const requiredEnvVars = [
     'MONGO_URI',
@@ -15,7 +16,7 @@ if (missingEnvVars.length > 0) {
 }
 
 const config = {
-    port: process.env.PORT || 5000,
+    port: process.env.SERVER_PORT || process.env.PORT || 5000,
     nodeEnv: process.env.NODE_ENV || 'development',
     mongoUri: process.env.MONGO_URI,
     jwtSecret: process.env.JWT_SECRET,

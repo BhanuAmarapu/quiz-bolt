@@ -1,60 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Play, Trash2, X, AlertCircle, CheckCircle2, ChevronLeft, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getMyQuizzes, addQuestion as apiAddQuestion, deleteQuestion as apiDeleteQuestion, updateQuestion as apiUpdateQuestion } from '../services/api';
+import { Plus, Play, Trash2, X, AlertCircle, CheckCircle2, ChevronLeft, Zap, Shuffle, ArrowUp, ArrowDown } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { getMyQuizzes, addQuestion as apiAddQuestion, deleteQuestion as apiDeleteQuestion, updateQuestion as apiUpdateQuestion, updateQuiz as apiUpdateQuiz } from '../services/api';
+import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
     const isError = type === 'error';
     return (
-        <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            className={`fixed top-4 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-3 px-6 py-4 bg-white rounded-2xl font-bold shadow-xl border
-                ${isError ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}`}
-        >
+        <div className={`fixed top-4 left-1/2 z-200 -translate-x-1/2 flex items-center gap-3 px-6 py-4 bg-white rounded-2xl font-bold shadow-xl border
+            ${isError ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}`}>
             {isError ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
             <span>{message}</span>
             <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X size={16} /></button>
-        </motion.div>
+        </div>
     );
 };
-
-const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-        <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white p-8 rounded-[2rem] max-w-sm w-full mx-4 space-y-6 border border-gray-100 shadow-xl"
-        >
-            <div className="flex items-start gap-4">
-                <div className="p-3 bg-red-500/20 rounded-2xl">
-                    <Trash2 className="text-red-400" size={24} />
-                </div>
-                <div>
-                    <h3 className="font-black text-lg tracking-tight">Confirm Delete</h3>
-                    <p className="text-slate-400 text-sm mt-1">{message}</p>
-                </div>
-            </div>
-            <div className="flex gap-3">
-                <button
-                    onClick={onCancel}
-                    className="flex-1 py-3 bg-gray-50 rounded-xl text-sm font-bold text-slate-700 hover:bg-gray-100 transition-all border border-gray-200"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={onConfirm}
-                    className="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-bold transition-all border border-red-200"
-                >
-                    Delete
-                </button>
-            </div>
-        </motion.div>
-    </div>
-);
 
 const OrganizerEdit = () => {
     const { id } = useParams();
@@ -66,14 +28,73 @@ const OrganizerEdit = () => {
     const [toast, setToast] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
     const [loading, setLoading] = useState(!activeQuiz);
+    const toastTimeoutRef = useRef(null);
 
     const showToast = (message, type = 'error') => {
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+        }
         setToast({ message, type });
-        setTimeout(() => setToast(null), 4000);
+        toastTimeoutRef.current = setTimeout(() => setToast(null), 4000);
     };
+
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const showConfirm = (message, onConfirm) => {
         setConfirmDialog({ message, onConfirm });
+    };
+
+    const handleToggleShuffleOptions = () => {
+        if (!activeQuestion) return;
+        const updatedQuestions = [...questions];
+        updatedQuestions[activeQuestionIndex] = {
+            ...updatedQuestions[activeQuestionIndex],
+            shuffleOptions: !updatedQuestions[activeQuestionIndex].shuffleOptions,
+        };
+        setActiveQuiz({ ...activeQuiz, questions: updatedQuestions });
+    };
+
+    const handleToggleShuffleQuestions = () => {
+        setActiveQuiz({
+            ...activeQuiz,
+            shuffleQuestions: !activeQuiz.shuffleQuestions,
+        });
+    };
+
+    const handleApplyShuffleToAllSlides = () => {
+        if (!activeQuestion) return;
+        const updatedQuestions = questions.map((question) => ({
+            ...question,
+            shuffleOptions: !!activeQuestion.shuffleOptions,
+        }));
+        setActiveQuiz({ ...activeQuiz, questions: updatedQuestions });
+        showToast('Shuffle setting applied to all slides', 'success');
+    };
+
+    // Move question up
+    const handleMoveQuestionUp = (index) => {
+        if (index <= 0) return;
+        const updatedQuestions = [...questions];
+        [updatedQuestions[index], updatedQuestions[index - 1]] = [updatedQuestions[index - 1], updatedQuestions[index]];
+        
+        setActiveQuiz({ ...activeQuiz, questions: updatedQuestions });
+        setActiveQuestionIndex(index - 1);
+    };
+
+    // Move question down
+    const handleMoveQuestionDown = (index) => {
+        if (index >= questions.length - 1) return;
+        const updatedQuestions = [...questions];
+        [updatedQuestions[index], updatedQuestions[index + 1]] = [updatedQuestions[index + 1], updatedQuestions[index]];
+        
+        setActiveQuiz({ ...activeQuiz, questions: updatedQuestions });
+        setActiveQuestionIndex(index + 1);
     };
 
     useEffect(() => {
@@ -87,7 +108,7 @@ const OrganizerEdit = () => {
                     } else {
                         navigate('/organizer-dashboard');
                     }
-                } catch (err) {
+                } catch {
                     navigate('/organizer-dashboard');
                 } finally {
                     setLoading(false);
@@ -97,7 +118,7 @@ const OrganizerEdit = () => {
         }
     }, [activeQuiz, id, navigate]);
 
-    if (loading || !activeQuiz) return <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center font-bold text-slate-400">Loading editor...</div>;
+    if (loading || !activeQuiz) return <div className="min-h-screen bg-(--bg-base) flex flex-col items-center justify-center font-bold text-slate-400">Loading editor...</div>;
 
     const questions = activeQuiz.questions || [];
     const activeQuestion = questions[activeQuestionIndex];
@@ -124,31 +145,38 @@ const OrganizerEdit = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[var(--color-dark)] flex flex-col animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 bg-(--color-dark) flex flex-col animate-in fade-in duration-300">
             <AnimatePresence>
                 {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                 {confirmDialog && (
-                    <ConfirmDialog
+                    <ConfirmationDialog
+                        open={!!confirmDialog}
                         message={confirmDialog.message}
+                        confirmLabel="Delete"
                         onConfirm={confirmDialog.onConfirm}
                         onCancel={() => setConfirmDialog(null)}
                     />
                 )}
             </AnimatePresence>
 
-            <header className="h-16 border-b border-[var(--color-border)] bg-[var(--bg-surface)] backdrop-blur-md flex items-center justify-between px-6 shrink-0">
+            <header className="h-16 border-b border-(--color-border) bg-(--bg-surface) backdrop-blur-md flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/organizer-dashboard')} className="p-2 hover:bg-gray-100 rounded-xl transition-all text-slate-900">
                         <ChevronLeft size={20} />
                     </button>
                     <div className="h-6 w-px bg-gray-200"></div>
-                    <h1 className="font-black tracking-tight text-lg text-slate-900 truncate max-w-[200px]">{activeQuiz.title}</h1>
+                    <h1 className="font-black tracking-tight text-lg text-slate-900 truncate max-w-50">{activeQuiz.title}</h1>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="flex bg-gray-100 p-1 rounded-xl">
-                        <button className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest bg-white text-indigo-600 shadow-sm border border-gray-200">Create</button>
-                        <button className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700 opacity-50 cursor-not-allowed">Results</button>
+                        <button className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest bg-white text-indigo-600 shadow-sm border border-gray-200">Edit</button>
+                        <button
+                            onClick={() => navigate(`/results/${activeQuiz._id}`, { state: { quiz: activeQuiz } })}
+                            className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700"
+                        >
+                            Results
+                        </button>
                     </div>
                     <button onClick={() => navigate(`/live/${activeQuiz._id}`, { state: { quiz: activeQuiz } })} className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full py-2 px-6 text-xs flex items-center gap-2 font-bold shadow-sm transition-all">
                         <Play size={14} fill="currentColor" /> START PRESENTATION
@@ -157,7 +185,7 @@ const OrganizerEdit = () => {
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-                <aside className="w-64 border-r border-[var(--color-border)] bg-[var(--bg-surface)] flex flex-col shrink-0">
+                <aside className="w-64 border-r border-(--color-border) bg-(--bg-surface) flex flex-col shrink-0">
                     <div className="p-4">
                         <button
                             onClick={async () => {
@@ -166,12 +194,13 @@ const OrganizerEdit = () => {
                                         text: 'New Question: Enter your inquiry here...',
                                         options: ['Classic Option A', 'Vibrant Option B', 'Clear Option C', 'Sharp Option D'],
                                         correctOption: 0,
-                                        timeLimit: 15
+                                        timeLimit: 15,
+                                        shuffleOptions: false
                                     });
                                     setActiveQuiz(data);
                                     setActiveQuestionIndex(data.questions.length - 1);
                                     showToast('New slide added!', 'success');
-                                } catch (err) {
+                                } catch {
                                     showToast('Failed to add slide');
                                 }
                             }}
@@ -185,36 +214,62 @@ const OrganizerEdit = () => {
                             <div
                                 key={q._id || i}
                                 onClick={() => setActiveQuestionIndex(i)}
-                                className={`group cursor-pointer flex gap-3 items-center relative pr-8`}
+                                className={`group cursor-pointer flex flex-col gap-2`}
                             >
-                                <span className="text-[10px] font-black text-slate-500 w-4">{i + 1}</span>
-                                <div className={`flex-1 aspect-video rounded-lg border-2 transition-all p-2 flex flex-col justify-center items-center gap-1 overflow-hidden
-                                    ${activeQuestionIndex === i ? 'border-indigo-500 bg-white shadow-sm' : 'border-gray-200 bg-gray-50 hover:border-indigo-400'}`}
-                                >
-                                    <div className="w-full h-1 bg-slate-400 rounded-full"></div>
-                                    <div className="w-2/3 h-1 bg-slate-300 rounded-full"></div>
-                                    <div className="grid grid-cols-2 gap-1 w-full mt-1">
-                                        <div className="h-1 bg-slate-800 rounded-full"></div>
-                                        <div className="h-1 bg-slate-800 rounded-full"></div>
+                                <div className={`flex gap-3 items-center relative pr-8`}>
+                                    <span className="text-[10px] font-black text-slate-500 w-4">{i + 1}</span>
+                                    <div className={`flex-1 aspect-video rounded-lg border-2 transition-all p-2 flex flex-col justify-center items-center gap-1 overflow-hidden
+                                        ${activeQuestionIndex === i ? 'border-indigo-500 bg-white shadow-sm' : 'border-gray-200 bg-gray-50 hover:border-indigo-400'}`}
+                                    >
+                                        <div className="w-full h-1 bg-slate-400 rounded-full"></div>
+                                        <div className="w-2/3 h-1 bg-slate-300 rounded-full"></div>
+                                        <div className="grid grid-cols-2 gap-1 w-full mt-1">
+                                            <div className="h-1 bg-slate-800 rounded-full"></div>
+                                            <div className="h-1 bg-slate-800 rounded-full"></div>
+                                        </div>
                                     </div>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteQuestion(q._id);
+                                        }}
+                                        className="absolute right-0 opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-red-500 transition-all rounded-lg hover:bg-red-500/10"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
                                 </div>
 
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteQuestion(q._id);
-                                    }}
-                                    className="absolute right-0 opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-red-500 transition-all rounded-lg hover:bg-red-500/10"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                                {/* Reorder Buttons */}
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity pl-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveQuestionUp(i);
+                                        }}
+                                        disabled={i === 0}
+                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all border border-blue-100"
+                                    >
+                                        <ArrowUp size={12} /> Up
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveQuestionDown(i);
+                                        }}
+                                        disabled={i === questions.length - 1}
+                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all border border-blue-100"
+                                    >
+                                        <ArrowDown size={12} /> Down
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </aside>
 
                 <main className="flex-1 bg-[#c0c2c9] p-12 overflow-y-auto flex flex-col items-center">
-                    <div className="w-full max-w-4xl aspect-[16/10] bg-white rounded-[2rem] p-16 flex flex-col shadow-xl relative border-none">
+                    <div className="w-full max-w-4xl aspect-16/10 bg-white rounded-4xl p-16 flex flex-col shadow-xl relative border-none">
                         <div className="absolute top-8 right-12 opacity-20">
                             <Zap className="fill-indigo-500 text-indigo-500" size={32} />
                         </div>
@@ -242,7 +297,7 @@ const OrganizerEdit = () => {
                                                 Option {i + 1} {isCorrect && <CheckCircle2 size={12} />}
                                             </div>
                                             <input
-                                                className={`w-full py-6 px-8 rounded-[1.5rem] bg-gray-100 border-2 outline-none transition-all font-bold text-center text-slate-900
+                                                className={`w-full py-6 px-8 rounded-3xl bg-gray-100 border-2 outline-none transition-all font-bold text-center text-slate-900
                                                     ${isCorrect ? 'border-green-400 bg-white' : 'border-transparent focus:border-indigo-500'}`}
                                                 placeholder={`Option ${i + 1}`}
                                                 value={opt}
@@ -269,31 +324,75 @@ const OrganizerEdit = () => {
                     </div>
                 </main>
 
-                <aside className="w-80 border-l border-[var(--color-border)] bg-[var(--bg-surface)] p-6 overflow-y-auto shrink-0 space-y-8">
+                <aside className="w-80 border-l border-(--color-border) bg-(--bg-surface) p-6 overflow-y-auto shrink-0 space-y-8">
                     <section className="space-y-4">
                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Configuration</h3>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             <button
                                 onClick={async () => {
                                     if (!activeQuestion) return;
                                     try {
-                                        const data = await apiUpdateQuestion(activeQuiz._id, activeQuestion._id, {
+                                        const questionUpdatedQuiz = await apiUpdateQuestion(activeQuiz._id, activeQuestion._id, {
                                             text: activeQuestion.text,
                                             options: activeQuestion.options,
                                             correctOption: activeQuestion.correctOption ?? 0,
-                                            timeLimit: activeQuestion.timeLimit
+                                            timeLimit: activeQuestion.timeLimit,
+                                            shuffleOptions: !!activeQuestion.shuffleOptions,
                                         });
-                                        setActiveQuiz(data);
-                                        showToast('Slide updated successfully!', 'success');
+                                        const quizUpdated = await apiUpdateQuiz(activeQuiz._id, {
+                                            shuffleQuestions: !!activeQuiz.shuffleQuestions,
+                                        });
+                                        setActiveQuiz({
+                                            ...questionUpdatedQuiz,
+                                            shuffleQuestions: quizUpdated.shuffleQuestions ?? activeQuiz.shuffleQuestions,
+                                        });
+                                        showToast('Slides content updated successfully!', 'success');
                                     } catch (err) {
                                         showToast(err.response?.data?.message || 'Failed to save changes');
                                     }
                                 }}
                                 className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-lg transition-all"
                             >
-                                SAVE SLIDE CONTENT
+                                SAVE SLIDES CONTENT
                             </button>
+
+                            <div className="space-y-3">
+                                <button
+                                    onClick={handleToggleShuffleOptions}
+                                    disabled={!activeQuestion}
+                                    className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${activeQuestion?.shuffleOptions
+                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                        : 'bg-gray-100 border-transparent text-slate-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <span className="text-xs font-black uppercase tracking-[0.15em]">Shuffle Options</span>
+                                    <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${activeQuestion?.shuffleOptions ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${activeQuestion?.shuffleOptions ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={handleToggleShuffleQuestions}
+                                    className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl border transition-all ${activeQuiz.shuffleQuestions
+                                        ? 'bg-orange-50 border-orange-200 text-orange-700'
+                                        : 'bg-gray-100 border-transparent text-slate-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <span className="text-xs font-black uppercase tracking-[0.15em]">Shuffle All Questions</span>
+                                    <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${activeQuiz.shuffleQuestions ? 'bg-orange-500' : 'bg-slate-300'}`}>
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${activeQuiz.shuffleQuestions ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={handleApplyShuffleToAllSlides}
+                                    disabled={!activeQuestion || questions.length < 2}
+                                    className="w-full py-3 bg-purple-50 hover:bg-purple-100 text-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-black uppercase tracking-[0.15em] border border-purple-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Shuffle size={14} /> Apply to All Slides
+                                </button>
+                            </div>
 
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-500 ml-1">Question Type</label>
@@ -346,7 +445,7 @@ const OrganizerEdit = () => {
                         </div>
                     </section>
 
-                    <div className="pt-12 border-t border-[var(--color-border)]">
+                    <div className="pt-12 border-t border-(--color-border)">
                         <button
                             onClick={() => handleDeleteQuestion(activeQuestion?._id)}
                             className="w-full py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl text-xs font-black tracking-widest transition-all border border-red-100 flex items-center justify-center gap-2"

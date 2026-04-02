@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "migrate:schema:dry": "node scripts/migrate-schema-v2.js --dry-run",
+    "migrate:schema:apply": "node scripts/migrate-schema-v2.js --apply",
     "test": "jest --coverage",
     "test:watch": "jest --watch"
   },

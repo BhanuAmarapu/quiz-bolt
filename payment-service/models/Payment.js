@@ -19,32 +19,42 @@ const paymentSchema = new mongoose.Schema({
   currency: {
     type: String,
     default: 'INR',
-    uppercase: true
+    uppercase: true,
+    trim: true,
+    enum: ['INR']
   },
   razorpayOrderId: {
     type: String,
     required: [true, 'Razorpay order ID is required'],
-    unique: true
+    unique: true,
+    trim: true
   },
   razorpayPaymentId: {
-    type: String
+    type: String,
+    trim: true,
+    default: null
   },
   razorpaySignature: {
-    type: String
+    type: String,
+    trim: true,
+    default: null,
+    select: false
   },
   status: {
     type: String,
     enum: ['created', 'completed', 'failed'],
     default: 'created'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+}, { timestamps: true });
+
+paymentSchema.path('quizId').index(true);
+paymentSchema.path('userId').index(true);
+
+paymentSchema.pre('validate', function normalizeAmount(next) {
+  if (typeof this.amount === 'number') {
+    this.amount = Number(this.amount.toFixed(2));
+  }
+  next();
 });
 
 // Indexes
@@ -53,11 +63,5 @@ paymentSchema.index({ razorpayOrderId: 1 }, { unique: true });
 paymentSchema.index({ razorpayPaymentId: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ userId: 1, status: 1 });
-
-// Update updatedAt on save
-paymentSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 module.exports = mongoose.model('Payment', paymentSchema);

@@ -12,20 +12,21 @@ const generateRefreshToken = (id) => {
 
 const registerUser = async (req, res) => {
     const { name, email, password, role } = req.body;
-    const userExists = await User.findOne({ email });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const userExists = await User.findOne({ email: normalizedEmail });
 
     if (userExists) {
         return res.status(400).json({ message: 'User already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword, role });
+    const user = await User.create({ name, email: normalizedEmail, password: hashedPassword, role });
 
     if (user) {
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
-        user.refreshToken = refreshToken;
+        await user.setRefreshToken(refreshToken);
         await user.save();
 
         res.cookie('refreshToken', refreshToken, {
@@ -39,6 +40,7 @@ const registerUser = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            profilePhoto: user.profilePhoto,
             role: user.role,
             token: accessToken,
         });
@@ -49,13 +51,14 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (user && (await bcrypt.compare(password, user.password))) {
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
-        user.refreshToken = refreshToken;
+        await user.setRefreshToken(refreshToken);
         await user.save();
 
         res.cookie('refreshToken', refreshToken, {
@@ -69,6 +72,7 @@ const loginUser = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            profilePhoto: user.profilePhoto,
             role: user.role,
             token: accessToken,
         });
@@ -85,14 +89,14 @@ const refresh = async (req, res) => {
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
         const user = await User.findById(decoded.id);
 
-        if (!user || user.refreshToken !== refreshToken) {
+        if (!user || !(await user.matchesRefreshToken(refreshToken))) {
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
 
         const newAccessToken = generateAccessToken(user._id);
         const newRefreshToken = generateRefreshToken(user._id);
 
-        user.refreshToken = newRefreshToken;
+        await user.setRefreshToken(newRefreshToken);
         await user.save();
 
         res.cookie('refreshToken', newRefreshToken, {
@@ -111,14 +115,61 @@ const refresh = async (req, res) => {
 const logoutUser = async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
-        const user = await User.findOne({ refreshToken });
-        if (user) {
-            user.refreshToken = null;
-            await user.save();
+        try {
+            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+            const user = await User.findById(decoded.id);
+            if (user && (await user.matchesRefreshToken(refreshToken))) {
+                user.refreshToken = null;
+                await user.save();
+            }
+        } catch {
+            // Fallback for legacy plain-text stored tokens.
+            const user = await User.findOne({ refreshToken });
+            if (user) {
+                user.refreshToken = null;
+                await user.save();
+            }
         }
     }
     res.clearCookie('refreshToken');
     res.json({ message: 'Logged out successfully' });
 };
 
-module.exports = { registerUser, loginUser, refresh, logoutUser };
+const getMyProfile = async (req, res) => {
+    res.json({
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        profilePhoto: req.user.profilePhoto || '',
+        role: req.user.role,
+    });
+};
+
+const updateMyProfile = async (req, res) => {
+    const { name, profilePhoto } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (typeof name === 'string' && name.trim()) {
+        user.name = name.trim();
+    }
+
+    if (typeof profilePhoto === 'string') {
+        user.profilePhoto = profilePhoto.trim();
+    }
+
+    await user.save();
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePhoto: user.profilePhoto || '',
+        role: user.role,
+    });
+};
+
+module.exports = { registerUser, loginUser, refresh, logoutUser, getMyProfile, updateMyProfile };

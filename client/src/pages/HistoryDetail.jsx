@@ -56,7 +56,7 @@ const HistoryDetail = () => {
                 <ArrowLeft size={20} /> Back to History
             </button>
 
-            <div className="bg-white border border-gray-100 shadow-sm p-8 rounded-[2rem] space-y-8 animate-in slide-in-from-bottom duration-500">
+            <div className="bg-white border border-gray-100 shadow-sm p-8 rounded-4xl space-y-8 animate-in slide-in-from-bottom duration-500">
                 <div className="flex justify-between items-start border-b border-gray-100 pb-6">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900">
@@ -142,7 +142,7 @@ const HistoryDetail = () => {
                             </div>
                         </div>
 
-                        <div className="p-8 border border-gray-100 bg-white rounded-[2rem] shadow-sm space-y-4">
+                        <div className="p-8 border border-gray-100 bg-white rounded-4xl shadow-sm space-y-4">
                             <h4 className="text-sm font-bold uppercase text-slate-400">Session Summary</h4>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div className="flex justify-between p-4 bg-gray-50 rounded-xl">

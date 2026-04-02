@@ -6,10 +6,18 @@ import { Link } from 'react-router-dom';
 const Navbar = () => {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const initials = user?.name
+        ? user.name
+            .split(' ')
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()
+        : 'U';
 
     return (
-        <nav className="sticky top-0 z-50 px-6 py-4">
-            <div className="max-w-7xl mx-auto bg-white rounded-2xl px-8 py-4 flex items-center justify-between border border-gray-100 shadow-sm">
+        <nav className="sticky top-0 z-50">
+            <div className="mx-auto bg-white  px-8 py-4 flex items-center justify-between border border-gray-100">
                 <Link to="/" className="flex items-center gap-3 group">
                     <div className="p-2 bg-indigo-50 rounded-xl group-hover:scale-110 transition-transform duration-300">
                         <Zap className="fill-indigo-600 text-indigo-100" size={24} />
@@ -38,10 +46,17 @@ const Navbar = () => {
                             </Link>
                             <div className="h-4 w-px bg-gray-200 hidden md:block"></div>
                             <div className="flex items-center gap-3">
-                                <div className="text-right hidden md:block">
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">Logged in as</p>
-                                    <p className="text-sm font-bold text-slate-900 leading-tight">{user.name}</p>
-                                </div>
+                                <Link
+                                    to="/profile"
+                                    className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-indigo-50 flex items-center justify-center text-xs font-black text-indigo-600 hover:ring-2 hover:ring-indigo-200 transition-all"
+                                    title="Open profile"
+                                >
+                                    {user.profilePhoto ? (
+                                        <img src={user.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span>{initials}</span>
+                                    )}
+                                </Link>
                                 <button onClick={logout} className="p-2.5 bg-red-50 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-100 transition-all border border-red-100">
                                     <LogOut size={18} />
                                 </button>
