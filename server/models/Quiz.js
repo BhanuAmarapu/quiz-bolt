@@ -25,25 +25,36 @@ QuestionSchema.path('correctOption').validate(function validateCorrectOption(ind
 const QuizSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, minlength: 1, maxlength: 150 },
     organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    roomCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true }, // Sparse allows null/missing for subjects
+    roomCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
     type: { type: String, enum: ['quiz', 'subject'], default: 'quiz' },
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', default: null },
     status: { type: String, enum: ['upcoming', 'ongoing', 'completed'], default: 'upcoming' },
     isPaid: { type: Boolean, default: false },
     price: { type: Number, default: 0, min: 0 },
     shuffleQuestions: { type: Boolean, default: false },
+    interQuestionDelay: { type: Number, default: 5, min: 0, max: 30 }, // seconds between questions
     questions: [QuestionSchema],
+    // Scheduling
+    scheduledAt: { type: Date, default: null },
+    // Participants who registered / joined the scheduled session
+    joinedParticipants: [
+        {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            name: { type: String, required: true },
+            joinedAt: { type: Date, default: Date.now },
+        }
+    ],
 }, { timestamps: true });
+
 
 QuizSchema.index({ organizerId: 1, createdAt: -1 });
 QuizSchema.index({ parentId: 1, createdAt: -1 });
 QuizSchema.index({ status: 1, updatedAt: -1 });
 
-QuizSchema.pre('validate', function normalizePricing(next) {
+QuizSchema.pre('validate', function normalizePricing() {
     if (!this.isPaid) {
         this.price = 0;
     }
-    next();
 });
 
 module.exports = mongoose.model('Quiz', QuizSchema);

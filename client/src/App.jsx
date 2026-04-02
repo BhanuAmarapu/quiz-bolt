@@ -49,11 +49,6 @@ const Home = () => (
       </Link>
     </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 pt-12 opacity-50">
-      {['Real-time', 'Security', 'Analytics', 'Premium UI'].map(feature => (
-        <span key={feature} className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{feature}</span>
-      ))}
-    </div>
   </div>
 );
 

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const SubmissionSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     quizId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', required: true },
+    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QuizSession', default: null },
     roomCode: { type: String, required: true, uppercase: true, trim: true },
     questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
     selectedOption: { type: String, required: true, trim: true },
@@ -10,10 +11,10 @@ const SubmissionSchema = new mongoose.Schema({
     score: { type: Number, default: 0, min: 0 },
 }, { timestamps: true });
 
-// Index for quick leaderboard retrieval
 SubmissionSchema.index({ quizId: 1, userId: 1 });
 SubmissionSchema.index({ roomCode: 1, createdAt: -1 });
 SubmissionSchema.index({ userId: 1, createdAt: -1 });
 SubmissionSchema.index({ quizId: 1, roomCode: 1 });
+SubmissionSchema.index({ sessionId: 1 });
 
 module.exports = mongoose.model('Submission', SubmissionSchema);

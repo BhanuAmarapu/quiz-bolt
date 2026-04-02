@@ -15,7 +15,13 @@ const {
     deleteQuiz,
     updateQuestion,
     deleteQuestion,
-    startQuizSession
+    startQuizSession,
+    abortSession,
+    scheduleQuiz,
+    joinScheduledSession,
+    getMyScheduledJoins,
+    getSessionResults,
+    getQuizSessions,
 } = require('../controllers/quizController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -39,7 +45,17 @@ router.get('/user/history', protect, getUserHistory);
 
 router.put('/:id', protect, authorize('organizer', 'admin'), updateQuiz);
 router.post('/:id/start', protect, authorize('organizer', 'admin'), startQuizSession);
+router.post('/:id/abort', protect, authorize('organizer', 'admin'), abortSession);
+router.post('/:id/schedule', protect, authorize('organizer', 'admin'), scheduleQuiz);
+router.get('/:id/sessions', protect, authorize('organizer', 'admin'), getQuizSessions);
 router.delete('/:id', protect, authorize('organizer', 'admin'), deleteQuiz);
+
+// Session results (stats)
+router.get('/session/:sessionCode/results', protect, getSessionResults);
+
+// Participant scheduled-session routes
+router.get('/user/scheduled-joins', protect, getMyScheduledJoins);
+router.post('/join-scheduled/:roomCode', protect, joinScheduledSession);
 
 router.post('/:id/questions', [
     protect,

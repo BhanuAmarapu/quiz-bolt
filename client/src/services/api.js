@@ -99,8 +99,19 @@ export const updateQuiz = (id, payload) =>
 export const startQuizSession = (id) =>
     api.post(`/quiz/${id}/start`).then(r => r.data);
 
+export const scheduleQuiz = (id, scheduledAt) =>
+    api.post(`/quiz/${id}/schedule`, { scheduledAt }).then(r => r.data);
+
 export const deleteQuiz = (id) =>
     api.delete(`/quiz/${id}`).then(r => r.data);
+
+// Participant: register for a scheduled session
+export const joinScheduledSession = (roomCode) =>
+    api.post(`/quiz/join-scheduled/${roomCode}`).then(r => r.data);
+
+// Participant: get all scheduled sessions joined
+export const getMyScheduledJoins = () =>
+    api.get('/quiz/user/scheduled-joins').then(r => r.data);
 
 // ─── Questions ───────────────────────────────────────────────────────────────
 

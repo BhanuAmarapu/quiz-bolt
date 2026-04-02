@@ -18,6 +18,80 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
+const buildImportedQuestions = (payload) => {
+    const source = Array.isArray(payload)
+        ? payload
+        : payload?.questions || payload?.slides || payload?.items || payload?.data;
+
+    if (!Array.isArray(source)) {
+        throw new Error('Paste a JSON array or an object with a questions/slides array.');
+    }
+
+    return source.map((slide, index) => {
+        const text = String(slide?.text ?? slide?.question ?? slide?.title ?? '').trim();
+        const optionsSource = Array.isArray(slide?.options)
+            ? slide.options
+            : Array.isArray(slide?.answers)
+                ? slide.answers
+                : Array.isArray(slide?.choices)
+                    ? slide.choices
+                    : [];
+
+        const options = optionsSource
+            .map((option) => String(option ?? '').trim())
+            .filter(Boolean);
+
+        if (!text) {
+            throw new Error(`Slide ${index + 1} is missing question text.`);
+        }
+
+        if (options.length < 2) {
+            throw new Error(`Slide ${index + 1} must include at least 2 options.`);
+        }
+
+        let correctOption = Number.isInteger(slide?.correctOption)
+            ? slide.correctOption
+            : Number.isInteger(Number(slide?.correctOption))
+                ? Number(slide.correctOption)
+                : 0;
+
+        const resolveCorrectIndex = (candidate) => {
+            if (candidate === undefined || candidate === null) return null;
+            if (Number.isInteger(candidate) || Number.isInteger(Number(candidate))) {
+                const numericIndex = Number(candidate);
+                return numericIndex >= 0 && numericIndex < options.length ? numericIndex : null;
+            }
+
+            const matchedIndex = options.findIndex((option) => option === String(candidate).trim());
+            return matchedIndex >= 0 ? matchedIndex : null;
+        };
+
+        const resolvedCorrectOption = resolveCorrectIndex(slide?.correctOption)
+            ?? resolveCorrectIndex(slide?.correctAnswer)
+            ?? resolveCorrectIndex(slide?.correct)
+            ?? resolveCorrectIndex(slide?.correctIndex)
+            ?? correctOption;
+
+        if (resolvedCorrectOption !== null) {
+            correctOption = resolvedCorrectOption;
+        }
+
+        if (!Number.isInteger(correctOption) || correctOption < 0 || correctOption >= options.length) {
+            correctOption = 0;
+        }
+
+        return {
+            text,
+            options,
+            correctOption,
+            timeLimit: Number(slide?.timeLimit) || 15,
+            shuffleOptions: !!slide?.shuffleOptions,
+            questionType: slide?.questionType || 'multiple-choice',
+            mediaUrl: slide?.mediaUrl || null,
+        };
+    });
+};
+
 const OrganizerEdit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -27,6 +101,10 @@ const OrganizerEdit = () => {
     const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
     const [toast, setToast] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
+    const [importDialogOpen, setImportDialogOpen] = useState(false);
+    const [importJson, setImportJson] = useState('');
+    const [importError, setImportError] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
     const [loading, setLoading] = useState(!activeQuiz);
     const toastTimeoutRef = useRef(null);
 
@@ -144,6 +222,40 @@ const OrganizerEdit = () => {
         });
     };
 
+    const handleImportSlides = async () => {
+        setImportError('');
+
+        try {
+            const parsed = JSON.parse(importJson);
+            const importedQuestions = buildImportedQuestions(parsed);
+
+            if (importedQuestions.length === 0) {
+                throw new Error('No valid slides were found in the JSON payload.');
+            }
+
+            setIsImporting(true);
+
+            let latestQuiz = activeQuiz;
+            for (const question of importedQuestions) {
+                latestQuiz = await apiAddQuestion(activeQuiz._id, question);
+            }
+
+            setActiveQuiz(latestQuiz);
+            setActiveQuestionIndex(Math.max(0, latestQuiz.questions.length - importedQuestions.length));
+            setImportJson('');
+            setImportDialogOpen(false);
+            showToast(`Imported ${importedQuestions.length} slide${importedQuestions.length === 1 ? '' : 's'} successfully.`, 'success');
+        } catch (err) {
+            const message = err instanceof SyntaxError
+                ? 'Invalid JSON. Paste a valid JSON array or object.'
+                : err?.message || 'Failed to import slides';
+            setImportError(message);
+            showToast(message);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-100 bg-(--color-dark) flex flex-col animate-in fade-in duration-300">
             <AnimatePresence>
@@ -159,6 +271,84 @@ const OrganizerEdit = () => {
                 )}
             </AnimatePresence>
 
+            {importDialogOpen && (
+                <div
+                    className="fixed inset-0 flex items-center justify-center bg-slate-900/45 px-4 backdrop-blur-sm"
+                    style={{ zIndex: 9999 }}
+                >
+                    <div className="w-full max-w-3xl rounded-3xl border border-gray-100 bg-white shadow-2xl">
+                        <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+                            <div>
+                                <h3 className="text-xl font-black tracking-tight text-slate-900">Import slides from JSON</h3>
+                                <p className="mt-1 text-sm text-slate-500">Paste a JSON array or an object with a <span className="font-semibold text-slate-700">questions</span> or <span className="font-semibold text-slate-700">slides</span> array.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setImportDialogOpen(false);
+                                    setImportError('');
+                                }}
+                                className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-gray-100 hover:text-slate-700"
+                                aria-label="Close JSON import dialog"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 p-6">
+                            <textarea
+                                className="min-h-72 w-full rounded-2xl border border-gray-200 bg-slate-50 p-4 font-mono text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:bg-white"
+                                value={importJson}
+                                onChange={(e) => {
+                                    setImportJson(e.target.value);
+                                    if (importError) setImportError('');
+                                }}
+                                placeholder={`[
+  {
+    "text": "Which option is correct?",
+    "options": ["Answer A", "Answer B", "Answer C", "Answer D"],
+    "correctOption": 1,
+    "timeLimit": 15,
+    "shuffleOptions": false
+  }
+]`}
+                            />
+
+                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                                Supported fields: <span className="font-semibold text-slate-700">text</span>, <span className="font-semibold text-slate-700">question</span>, <span className="font-semibold text-slate-700">options</span>, <span className="font-semibold text-slate-700">correctOption</span>, <span className="font-semibold text-slate-700">correctAnswer</span>, <span className="font-semibold text-slate-700">timeLimit</span>, <span className="font-semibold text-slate-700">shuffleOptions</span>, <span className="font-semibold text-slate-700">questionType</span>, and <span className="font-semibold text-slate-700">mediaUrl</span>.
+                            </div>
+
+                            {importError && (
+                                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                                    {importError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50 p-4 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setImportDialogOpen(false);
+                                    setImportError('');
+                                }}
+                                className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition-colors hover:bg-white hover:text-slate-700"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleImportSlides}
+                                disabled={isImporting}
+                                className="rounded-xl bg-indigo-500 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg transition-all hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isImporting ? 'Importing...' : 'Import Slides'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <header className="h-16 border-b border-(--color-border) bg-(--bg-surface) backdrop-blur-md flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/organizer-dashboard')} className="p-2 hover:bg-gray-100 rounded-xl transition-all text-slate-900">
@@ -171,6 +361,13 @@ const OrganizerEdit = () => {
                 <div className="flex items-center gap-4">
                     <div className="flex bg-gray-100 p-1 rounded-xl">
                         <button className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest bg-white text-indigo-600 shadow-sm border border-gray-200">Edit</button>
+                        <button
+                            type="button"
+                            onClick={() => setImportDialogOpen(true)}
+                            className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-purple-600 hover:text-purple-700"
+                        >
+                            Insert JSON
+                        </button>
                         <button
                             onClick={() => navigate(`/results/${activeQuiz._id}`, { state: { quiz: activeQuiz } })}
                             className="px-6 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700"

@@ -6,11 +6,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { createClient } = require('redis');
 const connectDB = require('./config/db');
 const { connectRedis } = require('./config/redis');
 const config = require('./config/env');
+const User = require('./models/User');
 const { quizHandler, rebootQuizzes } = require('./sockets/quizHandler');
 
 // Routes
@@ -87,12 +89,29 @@ const bootstrap = async () => {
         });
     });
 
+    // Socket auth middleware — verify JWT and attach full user to socket.data
+    // JWT only contains { id }, so we must look up the full User from DB (same as HTTP protect middleware)
+    io.use(async (socket, next) => {
+        try {
+            const token = socket.handshake.auth?.token ||
+                socket.handshake.headers?.cookie?.match(/token=([^;]+)/)?.[1];
+            if (!token) return next(new Error('AUTH_REQUIRED'));
+
+            const decoded = jwt.verify(token, config.jwtSecret);
+            const user = await User.findById(decoded.id).select('-password').lean();
+            if (!user) return next(new Error('AUTH_USER_NOT_FOUND'));
+
+            socket.data.user = user; // { _id, name, role, email, ... }
+            next();
+        } catch {
+            next(new Error('AUTH_INVALID'));
+        }
+    });
+
     // Socket logic
     io.on('connection', (socket) => {
         console.log('[Socket] New connection:', socket.id);
-
         quizHandler(io, socket);
-
         socket.on('disconnect', () => {
             console.log('[Socket] Disconnected:', socket.id);
         });

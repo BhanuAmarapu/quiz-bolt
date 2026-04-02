@@ -1,6 +1,6 @@
 import { Zap } from 'lucide-react';
 
-const LiveView = ({ activeQuiz, currentQuestion, timeLeft, participants, leaderboard, navigate }) => {
+const LiveView = ({ activeQuiz, currentQuestion, timeLeft, participants, leaderboard, navigate, onAbort }) => {
     return (
         <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex justify-between items-center bg-white p-6 rounded-4xl border border-gray-100 shadow-sm">
@@ -8,7 +8,7 @@ const LiveView = ({ activeQuiz, currentQuestion, timeLeft, participants, leaderb
                     <h1 className="text-4xl font-black text-slate-900">LIVE SESSION</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Room Code // {activeQuiz?.roomCode}</p>
                 </div>
-                <button onClick={() => navigate('/organizer-dashboard')} className="px-6 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all">
+                <button onClick={onAbort} className="px-6 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all">
                     END SESSION
                 </button>
             </div>

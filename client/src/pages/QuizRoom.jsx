@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import useQuizSocketEvents from '../hooks/useQuizSocketEvents';
 import useQuizTimer from '../hooks/useQuizTimer';
 import WaitingLobby from '../components/quizRoom/WaitingLobby';
@@ -13,6 +14,13 @@ const QuizRoom = () => {
     const socket = useSocket();
     const { user } = useAuth();
     const errorTimeoutRef = useRef(null);
+
+    // Record join time for scheduled (and instant) sessions
+    useEffect(() => {
+        if (roomCode && user) {
+            api.post(`/quiz/join-scheduled/${roomCode}`).catch(() => { /* silent – quiz may not have scheduledAt */ });
+        }
+    }, [roomCode, user]);
 
     // State
     const [status, setStatus] = useState('waiting');
@@ -100,13 +108,11 @@ const QuizRoom = () => {
         if (!socket || !user || !currentQuestion || selectedOption || timeLeft === 0 || status !== 'playing') return;
         setSelectedOption(option);
 
-        // timeTaken is calculated server-side for anti-cheat
+        // userId/userName come from server-authoritative JWT (fix #10)
         socket.emit('submit_answer', {
             roomCode,
-            userId: user._id,
-            userName: user.name,
             questionId: currentQuestion._id,
-            selectedOption: option
+            selectedOption: option,
         });
     };
 

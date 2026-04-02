@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Award, Users, Clock, Zap, Trophy, X } from 'lucide-react';
+import { Calendar, Award, Users, Clock, Zap, Trophy, X, CalendarClock, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
+import api from '../services/api';
 import SearchBar from '../components/ui/SearchBar';
 import Loader from '../components/ui/Loader';
 import Card from '../components/ui/Card';
@@ -14,6 +15,7 @@ const History = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [scheduledJoins, setScheduledJoins] = useState([]);
     const { user } = useAuth();
     const { getHistoryForRole, getQuizLeaderboardCached } = useAppData();
     const navigate = useNavigate();
@@ -29,6 +31,11 @@ const History = () => {
             setError(null);
             const data = await getHistoryForRole(user.role, { force: true });
             setHistory(data);
+            // Fetch scheduled sessions for participants
+            if (user.role === 'participant') {
+                const joined = await api.get('/quiz/user/scheduled-joins').then(r => r.data);
+                setScheduledJoins(joined);
+            }
         } catch {
             setError('Failed to load history. Please try again.');
         } finally {
@@ -102,6 +109,77 @@ const History = () => {
                     className="w-full md:w-96"
                 />
             </div>
+
+            {/* Scheduled sessions for participants */}
+            {user.role === 'participant' && scheduledJoins.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <CalendarClock size={18} className="text-violet-600" />
+                        <h2 className="text-lg font-black text-slate-900 uppercase">Upcoming Scheduled Sessions</h2>
+                        <span className="px-2 py-0.5 bg-violet-100 text-violet-600 text-[10px] font-bold rounded-full uppercase">
+                            {scheduledJoins.filter(s => s.status !== 'completed').length} registered
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {scheduledJoins.map(session => {
+                            const isUpcoming = session.status === 'upcoming' && new Date(session.scheduledAt) > new Date();
+                            const isOngoing = session.status === 'ongoing';
+                            return (
+                                <Card
+                                    key={session.quizId}
+                                    className={`bg-white border-2 rounded-3xl p-5 space-y-3 shadow-sm transition-all ${
+                                        isOngoing ? 'border-green-300 hover:border-green-400' : 'border-violet-100 hover:border-violet-300'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className={`text-[10px] px-2 py-0.5 font-bold rounded-full uppercase ${
+                                            isOngoing ? 'bg-green-100 text-green-700 animate-pulse' :
+                                            isUpcoming ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {isOngoing ? 'Live Now' : isUpcoming ? 'Upcoming' : 'Completed'}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{session.roomCode}</span>
+                                    </div>
+                                    <h3 className="text-base font-black text-slate-900 leading-tight">{session.title}</h3>
+                                    <div className="space-y-1 text-[11px] font-medium text-slate-500">
+                                        <div className="flex items-center gap-1.5">
+                                            <CalendarClock size={11} className="text-violet-400" />
+                                            <span>Scheduled: <span className="font-bold text-slate-700">
+                                                {session.scheduledAt ? new Date(session.scheduledAt).toLocaleString('en-IN', {
+                                                    day: '2-digit', month: 'short', year: '2-digit',
+                                                    hour: '2-digit', minute: '2-digit',
+                                                }) : '—'}
+                                            </span></span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock size={11} className="text-indigo-400" />
+                                            <span>Registered: <span className="font-bold text-slate-700">
+                                                {session.joinedAt ? new Date(session.joinedAt).toLocaleString('en-IN', {
+                                                    day: '2-digit', month: 'short', year: '2-digit',
+                                                    hour: '2-digit', minute: '2-digit',
+                                                }) : '—'}
+                                            </span></span>
+                                        </div>
+                                    </div>
+                                    {(isOngoing || isUpcoming) && (
+                                        <button
+                                            onClick={() => navigate(`/quiz/${session.roomCode}`)}
+                                            className={`w-full py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                                                isOngoing
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                    : 'bg-violet-50 hover:bg-violet-100 text-violet-700'
+                                            }`}
+                                        >
+                                            <ExternalLink size={12} />
+                                            {isOngoing ? 'Join Now' : 'Enter Lobby'}
+                                        </button>
+                                    )}
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {history.length === 0 ? (
                 <Card className="bg-white p-20 flex flex-col items-center justify-center text-center space-y-6 rounded-[2.5rem] border border-gray-100 shadow-sm">

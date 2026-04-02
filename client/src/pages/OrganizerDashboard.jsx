@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Play, Trash2, X, Check, Zap, Folder, ChevronLeft, Pencil } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Play, Trash2, X, Check, Zap, Folder, ChevronLeft, Pencil, Clock, CalendarDays, Layers, Radio } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
 import {
@@ -15,6 +15,8 @@ import useToast from '../hooks/useToast';
 
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
+    const navigateRef = useRef(navigate);
+    useEffect(() => { navigateRef.current = navigate; }, [navigate]);
     const [quizzes, setQuizzes] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
     const [newQuizTitle, setNewQuizTitle] = useState('');
@@ -142,6 +144,7 @@ const OrganizerDashboard = () => {
             </AnimatePresence>
 
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
+                {/* Ongoing session banner */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900">STUDIO</h1>
@@ -222,7 +225,21 @@ const OrganizerDashboard = () => {
                                                 title="Double-click to rename"
                                             >{quiz.title}</h3>
                                         )}
-                                        <p className="text-xs font-bold text-slate-500">Container for nested quizzes.</p>
+                                        {/* Folder meta stats */}
+                                        <div className="grid grid-cols-2 gap-2 pt-1">
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                                                <CalendarDays size={11} className="text-indigo-400 shrink-0" />
+                                                <span>Created&nbsp;<span className="text-slate-600 font-semibold">{new Date(quiz.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</span></span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                                                <Clock size={11} className="text-indigo-400 shrink-0" />
+                                                <span>Updated&nbsp;<span className="text-slate-600 font-semibold">{new Date(quiz.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</span></span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium col-span-2">
+                                                <Layers size={11} className="text-indigo-400 shrink-0" />
+                                                <span><span className="text-slate-700 font-bold">{quiz.subDirectoryCount ?? 0}</span>&nbsp;sub-quiz{(quiz.subDirectoryCount ?? 0) !== 1 ? 'zes' : ''} inside</span>
+                                            </div>
+                                        </div>
                                         <button
                                             onClick={() => setCurrentSubject(quiz)}
                                             className="w-full py-4 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl text-xs font-bold transition-all"
@@ -264,8 +281,26 @@ const OrganizerDashboard = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="flex gap-4 text-xs font-bold text-slate-500">
-                                            <span className="flex items-center gap-1.5"><Zap size={12} className="text-indigo-500" /> {quiz.questions?.length || 0} Slides</span>
+                                        {/* Quiz meta stats */}
+                                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-slate-400 font-medium">
+                                            <div className="flex items-center gap-1.5">
+                                                <CalendarDays size={11} className="text-indigo-400 shrink-0" />
+                                                <span>Created&nbsp;<span className="text-slate-600 font-semibold">{new Date(quiz.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</span></span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock size={11} className="text-indigo-400 shrink-0" />
+                                                <span>Updated&nbsp;<span className="text-slate-600 font-semibold">{new Date(quiz.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</span></span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Zap size={11} className="text-indigo-400 shrink-0" />
+                                                <span><span className="text-slate-700 font-bold">{quiz.questions?.length || 0}</span>&nbsp;Slide{(quiz.questions?.length || 0) !== 1 ? 's' : ''}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Radio size={11} className="text-indigo-400 shrink-0" />
+                                                <span><span className="text-slate-700 font-bold">{quiz.sessionCount ?? 0}</span>&nbsp;Session{(quiz.sessionCount ?? 0) !== 1 ? 's' : ''} Live</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
                                             <span>Status: <span className="text-slate-900 capitalize">{quiz.status}</span></span>
                                             {quiz.isPaid && <span className="text-emerald-600 font-black">₹{quiz.price}</span>}
                                         </div>

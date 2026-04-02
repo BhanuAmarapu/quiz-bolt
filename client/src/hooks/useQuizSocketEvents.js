@@ -17,7 +17,7 @@ export const useQuizSocketEvents = (socket, roomCode, user, {
     useEffect(() => {
         if (!socket || !user) return;
 
-        socket.emit('join_room', { roomCode, user });
+        socket.emit('join_room', { roomCode }); // user identity comes from JWT (fix #10)
 
         socket.on('room_state', onRoomState);
         socket.on('participants_update', onParticipantsUpdate);
